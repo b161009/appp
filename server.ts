@@ -282,6 +282,12 @@ async function startServer() {
     const approvedDocs = db.documents.filter(d => d.status === 'approved');
     res.json(approvedDocs);
   });
+// Endpoint lấy tài liệu do một user tải lên (bao gồm cả pending/rejected)
+  app.get("/api/documents/user/:userId", (req, res) => {
+    const { userId } = req.params;
+    const userDocs = db.documents.filter(d => d.authorId === userId);
+    res.json(userDocs);
+  });
 
   app.post("/api/documents/:id/view", async (req, res) => {
     const { id } = req.params;
