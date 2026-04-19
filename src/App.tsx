@@ -106,9 +106,21 @@ export default function App() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const docsUrl = user?.role === 'admin' ? '/api/documents' : '/api/documents/approved';
-      const [docsRes, postsRes, reviewsRes, usersRes] = await Promise.all([
-        fetch(docsUrl),
+    const docsPromise = user?.role === 'admin'
+        ? fetch('/api/documents').then(res => res.json())
+        : user?.role === 'user' && user?.id
+          ? Promise.all([
+              fetch('/api/documents/approved').then(res => res.json()),
+              fetch(`/api/documents/user/${user.id}`).then(res => res.json())
+            ]).then(([approvedDocs, ownDocs]) => {
+              const mergedDocs = new Map<string, Document>();
+              [...approvedDocs, ...ownDocs].forEach((doc: Document) => mergedDocs.set(doc.id, doc));
+              return Array.from(mergedDocs.values());
+            })
+          : fetch('/api/documents/approved').then(res => res.json());
+
+      const [docsData, postsRes, reviewsRes, usersRes] = await Promise.all([
+        docsPromise,
         fetch('/api/community', { 
           headers: { 
             'x-user-role': user?.role || 'user',
