@@ -22,6 +22,8 @@ interface VaultViewProps {
   vaultFilter: any;
   setVaultFilter: (v: any) => void;
   filteredDocs: Document[];
+  userUploadedDocs: Document[];
+  pendingDocs: Document[];
   handleDeleteDocument: (id: string) => void;
   users: User[];
   handleBookmark: (docId: string) => void;
@@ -38,12 +40,22 @@ const VaultView: React.FC<VaultViewProps> = ({
   vaultFilter,
   setVaultFilter,
   filteredDocs,
+  userUploadedDocs,
+  pendingDocs,
   handleDeleteDocument,
   users,
   handleBookmark
 }) => {
   const [studentFileName, setStudentFileName] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'library' | 'uploaded' | 'pending'>('library');
+
+  const tabDocs = activeTab === 'uploaded' ? userUploadedDocs : activeTab === 'pending' ? pendingDocs : filteredDocs;
+  const tableTitle = activeTab === 'uploaded'
+    ? 'Tài liệu đã tải lên'
+    : activeTab === 'pending'
+      ? 'Tài liệu chờ duyệt'
+      : 'Tài liệu thư viện';
 
   return (
     <div className="p-5 flex flex-col h-full gap-4 overflow-hidden">
@@ -201,12 +213,39 @@ const VaultView: React.FC<VaultViewProps> = ({
           </Button>
         </div>
       </Card>
+      <div className="flex items-center gap-2">
+        <Button
+          variant={activeTab === 'library' ? 'primary' : 'ghost'}
+          className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+          onClick={() => setActiveTab('library')}
+        >
+          Thư viện
+        </Button>
+        {user?.role === 'user' && (
+          <Button
+            variant={activeTab === 'uploaded' ? 'primary' : 'ghost'}
+            className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+            onClick={() => setActiveTab('uploaded')}
+          >
+            Tài liệu đã tải lên
+          </Button>
+        )}
+        {user?.role === 'admin' && (
+          <Button
+            variant={activeTab === 'pending' ? 'primary' : 'ghost'}
+            className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+            onClick={() => setActiveTab('pending')}
+          >
+            Tài liệu chờ duyệt
+          </Button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-auto bg-white border border-border-theme rounded-lg shadow-sm">
         <table className="w-full text-xs text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-border-theme text-slate-500 font-black uppercase tracking-widest text-[10px]">
-              <th className="p-3">Tên tài liệu học tập</th>
+              <th className="p-3">{tableTitle}</th>
               <th className="p-3 text-center">Khối</th>
               <th className="p-3">Môn học</th>
               <th className="p-3">Phân loại</th>
@@ -218,7 +257,7 @@ const VaultView: React.FC<VaultViewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredDocs.map(doc => {
+            {tabDocs.map(doc => {
               const author = users.find(u => u.id === doc.authorId);
               const isBookmarked = user?.bookmarks?.includes(doc.id);
               const isImage = doc.fileType?.startsWith('image/');
@@ -278,7 +317,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                 </tr>
               );
             })}
-            {filteredDocs.length === 0 && (
+            {tabDocs.length === 0 && (
               <tr>
                 <td colSpan={9} className="p-10 text-center text-slate-400 font-bold uppercase text-[11px] tracking-widest">
                   Không tìm thấy tài liệu phù hợp
