@@ -1,5 +1,5 @@
-// Máy chủ Express + Socket.io cho môi trường phát triển và API giả lập
-import express from "express";
+// Máy chủ Express + Socket.io với Firestore, Firebase Auth email, và cấu hình Vercel
+import express, { Request, Response, NextFunction } from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs/promises";
@@ -9,340 +9,486 @@ import { fileURLToPath } from "url";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import multer from "multer";
-import type { Document, Post, Message, User, Report, Review, FriendRequest, FriendConnection } from "./src/types.ts";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  increment,
+  DocumentData,
+} from "firebase/firestore";
+import { db, firebaseConfig } from "./src/firebase.ts";
+import type {
+  Document,
+  Post,
+  Message,
+  User,
+  Report,
+  Review,
+  FriendRequest,
+  FriendConnection,
+} from "./src/types.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const PORT = Number(process.env.PORT) || 3000;
+const allowedOrigins = ["https://appp-mu.vercel.app", "http://localhost:5173"];
+const adminUID = "jyqkUhcdG9OeM2nofCCxr1ThtKD3";
+const authBaseUrl = "https://identitytoolkit.googleapis.com/v1";
 
-async function startServer() {
+interface AuthInfo {
+  uid: string;
+  email?: string;
+  role?: string;
+}
+
+interface AuthRequest extends Request {
+  auth?: AuthInfo;
+}
+
+function sanitizeUser(user: Partial<User> & { id: string }) {
+  const { password, ...rest } = user;
+  return rest;
+}
+
+function docSnapToObject<T>(docSnap: { id: string; data(): DocumentData | undefined }) {
+  const data = docSnap.data() as Omit<T, "id">;
+  return { id: docSnap.id, ...data } as T & { id: string };
+}
+
+async function fetchFirebaseAuth(endpoint: string, body: Record<string, unknown>) {
+  const response = await fetch(`${authBaseUrl}${endpoint}?key=${firebaseConfig.apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const errorMessage = data?.error?.message || "Firebase Auth error";
+    throw new Error(errorMessage);
+  }
+  return data;
+}
+
+async function verifyIdToken(idToken: string): Promise<AuthInfo> {
+  const data = await fetchFirebaseAuth("/accounts:lookup", { idToken });
+  const user = Array.isArray(data.users) ? data.users[0] : undefined;
+  if (!user?.localId) {
+    throw new Error("Invalid token");
+  }
+  return { uid: user.localId, email: user.email };
+}
+
+async function signInWithEmail(email: string, password: string) {
+  return await fetchFirebaseAuth("/accounts:signInWithPassword", {
+    email,
+    password,
+    returnSecureToken: true,
+  });
+}
+
+async function signUpWithEmail(email: string, password: string) {
+  return await fetchFirebaseAuth("/accounts:signUp", {
+    email,
+    password,
+    returnSecureToken: true,
+  });
+}
+
+async function updatePassword(idToken: string, password: string) {
+  return await fetchFirebaseAuth("/accounts:update", {
+    idToken,
+    password,
+    returnSecureToken: true,
+  });
+}
+
+async function getAuthInfo(req: Request): Promise<AuthInfo | undefined> {
+  const bearer = req.headers["authorization"] as string | undefined;
+  if (bearer?.startsWith("Bearer ")) {
+    try {
+      return await verifyIdToken(bearer.slice(7));
+    } catch {
+      return undefined;
+    }
+  }
+
+  const uid = req.headers["x-user-id"] as string | undefined;
+  const role = req.headers["x-user-role"] as string | undefined;
+  if (uid) {
+    return { uid, role };
+  }
+
+  return undefined;
+}
+
+async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  const auth = await getAuthInfo(req);
+  if (!auth) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  req.auth = auth;
+  next();
+}
+
+async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  const auth = await getAuthInfo(req);
+  if (!auth) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (auth.uid !== adminUID && auth.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  req.auth = auth;
+  next();
+}
+
+async function getAllDocs<T>(collectionName: string) {
+  const snapshot = await getDocs(collection(db, collectionName));
+  return snapshot.docs.map((docSnap) => docSnapToObject<T>(docSnap));
+}
+
+async function getDocById<T>(collectionName: string, id: string) {
+  const docRef = doc(db, collectionName, id);
+  const snapshot = await getDoc(docRef);
+  if (!snapshot.exists()) return null;
+  return docSnapToObject<T>(snapshot);
+}
+
+async function saveDoc<T>(collectionName: string, id: string, payload: Partial<T>) {
+  const docRef = doc(db, collectionName, id);
+  await setDoc(docRef, payload, { merge: true });
+  return await getDocById<T>(collectionName, id);
+}
+
+async function removeDoc(collectionName: string, id: string) {
+  await deleteDoc(doc(db, collectionName, id));
+}
+
+function buildResponseUser(user: Partial<User> & { id: string }) {
+  return sanitizeUser(user) as Omit<User, "password"> & { id: string };
+}
+
+function mapToIds<T>(items: Array<T & { id: string }>) {
+  return items.map((item) => item.id);
+}
+
+async function createUserIfMissing(uid: string, email: string, username: string, role: "admin" | "user" = "user") {
+  const existing = await getDocById<User>("users", uid);
+  if (existing) return existing;
+  const newUser: User = {
+    id: uid,
+    username,
+    role,
+    isBlocked: false,
+    email,
+    bookmarks: [],
+    online: false,
+  };
+  await setDoc(doc(db, "users", uid), newUser);
+  return newUser;
+}
+
+async function makeAuthRequestEmail(email: string, password: string) {
+  try {
+    return await signInWithEmail(email, password);
+  } catch (error: any) {
+    const msg = String(error?.message || "Email login failed");
+    throw new Error(msg);
+  }
+}
+
+async function getUserByUsername(username: string) {
+  const snapshot = await getDocs(query(collection(db, "users"), where("username", "==", username)));
+  return snapshot.docs.map((docSnap) => docSnapToObject<User>(docSnap))[0] ?? null;
+}
+
+async function getUsersByIds(userIds: string[]) {
+  const users = await getAllDocs<User>("users");
+  return users.filter((user) => userIds.includes(user.id));
+}
+
+async function main() {
   const app = express();
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
-    cors: { origin: ["https://appp-mu.vercel.app", "http://localhost:5173"] }
+    cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
   });
-const PORT = process.env.PORT || 3000;
 
-}));
-  app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
+  app.use(
+    cors({
+      origin: allowedOrigins,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    })
+  );
+  app.use(express.json({ limit: "50mb" }));
   app.use(cookieParser());
 
-  // Cấu hình multer cho upload file
-  const UPLOAD_DIR = path.join(__dirname, 'uploads');
+  const UPLOAD_DIR = path.join(__dirname, "uploads");
   const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
       await fs.mkdir(UPLOAD_DIR, { recursive: true });
       cb(null, UPLOAD_DIR);
     },
     filename: (req, file, cb) => {
-      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+      const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
       cb(null, uniqueName);
-    }
+    },
   });
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/svg+xml",
+    "image/heic",
+    "image/bmp",
+    "image/tiff",
+    "image/vnd.microsoft.icon",
+    "application/pdf",
+  ];
 
   const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    const allowedTypes = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml',
-      'image/heic', 'image/bmp', 'image/tiff', 'image/vnd.microsoft.icon',
-      'application/pdf'
-    ];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Loại file không được hỗ trợ'));
-    }
+    cb(null, allowedTypes.includes(file.mimetype));
   };
 
-  const upload = multer({
-    storage,
-    fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-  });
+  const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+  app.use("/uploads", express.static(UPLOAD_DIR));
 
-  // Serve static files from uploads directory
-  app.use('/uploads', express.static(UPLOAD_DIR));
-
-  const DB_PATH = path.join(__dirname, 'db.json');
-
-  type Database = {
-    documents: Document[];
-    communityPosts: Post[];
-    messages: Message[];
-    users: User[];
-    reports: Report[];
-    reviews: Review[];
-    friendRequests: FriendRequest[];
-    connections: FriendConnection[];
-  };
-
-  const defaultDb: Database = {
-    documents: [
-      { id: "1", title: "Đề thi Toán giữa kì 1 - Khối 10", grade: "10", subject: "Toán", type: "Midterm 1", school: "Trường THPT Chuyên", year: "2023", authorId: "admin", status: "approved", createdAt: new Date().toISOString(), viewCount: 0 },
-      { id: "2", title: "Đề thi Vật lý cuối kì 1 - Khối 11", grade: "11", subject: "Lý", type: "Final 1", school: "Trường THPT Chuyên", year: "2024", authorId: "admin", status: "approved", createdAt: new Date().toISOString(), viewCount: 0 },
-      { id: "3", title: "Đề ôn thi Hóa học - Khối 12", grade: "12", subject: "Hóa", type: "Ôn thi tốt nghiệp", school: "Trường THPT Phan Bội Châu", year: "2025", authorId: "admin", status: "approved", createdAt: new Date().toISOString(), viewCount: 0 },
-      { id: "4", title: "Đề thi Anh văn kì 2 - Khối 11", grade: "11", subject: "Anh văn", type: "Final 2", school: "Trường THPT Lê Quý Đôn", year: "2023", authorId: "admin", status: "approved", createdAt: new Date().toISOString(), viewCount: 0 },
-    ],
-    communityPosts: [
-      { id: "1", content: "Chào mọi người, có ai có tài liệu ôn thi tốt nghiệp môn Sử không?", authorId: "user_123", isAnonymous: true, reports: [], replies: [], likedBy: [], createdAt: new Date().toISOString(), commentCount: 0 },
-    ],
-    messages: [],
-    users: [
-      { id: "admin", username: "admin", password: "admin", role: "admin", isBlocked: false, online: false },
-      { id: "user_123", username: "học-sinh-1", password: "1234", role: "user", isBlocked: false, online: false },
-      { id: "user_456", username: "học-sinh-2", password: "1234", role: "user", isBlocked: false, online: false },
-    ],
-    reports: [],
-    reviews: [
-      { id: "r1", userId: "user_123", type: "rating", rating: 5, comment: "Trang web rất hữu ích!", adminReply: undefined, adminId: undefined, likedBy: [], createdAt: new Date().toISOString() }
-    ],
-    friendRequests: [],
-    connections: []
-  };
-
-  let db: Database;
-
-  async function saveDatabase() {
-    await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf8');
-  }
-
-  function sanitizeUser(user: User) {
-    const { password, ...rest } = user;
-    return rest;
-  }
-
-  async function loadDatabase() {
-    try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      db = JSON.parse(data) as Database;
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        db = defaultDb;
-        await saveDatabase();
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  await loadDatabase();
-
-  // Xử lý kết nối Socket
   io.on("connection", (socket) => {
-    socket.on("user:online", (userId) => {
-      const user = db.users.find(u => u.id === userId);
+    socket.on("user:online", async (userId: string) => {
+      const user = await getDocById<User>("users", userId);
       if (user) {
-        user.online = true;
+        await updateDoc(doc(db, "users", userId), { online: true });
         socket.join(`user:${userId}`);
         io.emit("user:status", { userId, online: true });
       }
     });
 
-    socket.on("message:send", (msg) => {
-      const message = {
+    socket.on("message:send", async (msg: Message) => {
+      const message: Message = {
         ...msg,
         id: Math.random().toString(36).substr(2, 9),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      db.messages.push(message);
+      await addDoc(collection(db, "messages"), message);
       io.to(`user:${msg.receiverId}`).emit("message:receive", message);
       io.to(`user:${msg.senderId}`).emit("message:receive", message);
     });
 
-    socket.on("message:recall", (data: { messageId: string, userId: string }) => {
-      const msg = db.messages.find(m => m.id === data.messageId && m.senderId === data.userId);
-      if (msg) {
-        msg.isRecalled = true;
-        io.to(`user:${msg.receiverId}`).emit("message:recalled", { messageId: data.messageId });
-        io.to(`user:${msg.senderId}`).emit("message:recalled", { messageId: data.messageId });
+    socket.on("message:recall", async (data: { messageId: string; userId: string }) => {
+      const messageDoc = await getDocById<Message>("messages", data.messageId);
+      if (messageDoc && messageDoc.senderId === data.userId) {
+        await updateDoc(doc(db, "messages", data.messageId), { isRecalled: true });
+        io.to(`user:${messageDoc.receiverId}`).emit("message:recalled", { messageId: data.messageId });
+        io.to(`user:${messageDoc.senderId}`).emit("message:recalled", { messageId: data.messageId });
       }
     });
 
-    socket.on("disconnect", () => {
-      // Đặt trạng thái ngoại tuyến khi socket disconnect (đơn giản)
-      db.users.forEach(u => u.online = false);
-      io.emit("user:status:all", db.users.map(u => ({ id: u.id, online: false })));
+    socket.on("disconnect", async () => {
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const updates = usersSnapshot.docs.map((userDoc) => updateDoc(userDoc.ref, { online: false }));
+      await Promise.all(updates);
+      io.emit(
+        "user:status:all",
+        usersSnapshot.docs.map((userDoc) => ({ id: userDoc.id, online: false }))
+      );
     });
   });
 
-  // Các tuyến API cho ứng dụng
-  app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    
-    // Kiểm tra tài khoản quản trị viên
-    if (username === "admin" && password === "admin") {
-      const admin = db.users.find(u => u.id === "admin");
-      if (admin?.isBlocked) return res.status(403).json({ error: "Tài khoản của bạn đã bị khóa." });
-      return res.json(sanitizeUser(admin!));
+  app.post("/api/login", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email và mật khẩu là bắt buộc" });
     }
-
-    if (username === "admin") {
-      return res.status(401).json({ error: "Mật khẩu admin không chính xác" });
-    }
-
-    if (username && password) {
-      const user = db.users.find(u => u.username === username);
+    try {
+      const authResult = await makeAuthRequestEmail(email, password);
+      const uid = authResult.localId as string;
+      const userDoc = await getDocById<User>("users", uid);
+      let user = userDoc;
       if (!user) {
-        return res.status(401).json({ error: "Tên đăng nhập không tồn tại. Vui lòng đăng ký trước." });
+        const username = email.split("@")[0];
+        const role = uid === adminUID ? "admin" : "user";
+        user = await createUserIfMissing(uid, email, username, role);
       }
       if (user.isBlocked) {
-        return res.status(403).json({ error: "Tài khoản của bạn đã bị khóa do vi phạm chính sách của ScholaVault." });
+        return res.status(403).json({ error: "Tài khoản của bạn đã bị khóa." });
       }
-      if (user.password !== password) {
-        return res.status(401).json({ error: "Mật khẩu không chính xác" });
-      }
-      return res.json(sanitizeUser(user));
+      return res.json({ user: buildResponseUser(user), idToken: authResult.idToken });
+    } catch (error: any) {
+      const message = String(error?.message || "Đăng nhập không thành công");
+      return res.status(401).json({ error: message });
     }
-    res.status(401).json({ error: "Unauthorized" });
   });
 
   app.post("/api/register", async (req, res) => {
-    const { username, password } = req.body;
-
-    // Validate input
-    if (!username || !password) {
-      return res.status(400).json({ error: "Vui lòng nhập tên đăng nhập và mật khẩu" });
+    const { email, username, password } = req.body;
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: "Vui lòng nhập email, tên đăng nhập và mật khẩu" });
     }
-
     if (username.length < 3 || username.length > 20) {
       return res.status(400).json({ error: "Tên đăng nhập phải từ 3 đến 20 ký tự" });
     }
-
-    if (password.length < 4) {
-      return res.status(400).json({ error: "Mật khẩu phải ít nhất 4 ký tự" });
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự" });
     }
-
-    if (db.users.find(u => u.username === username)) {
+    const existingUsername = await getUserByUsername(username);
+    if (existingUsername) {
       return res.status(400).json({ error: "Tên đăng nhập đã tồn tại" });
     }
-
-    const newUser = {
-      id: "user_" + Math.random().toString(36).substr(2, 5),
-      username,
-      password,
-      role: "user" as const,
-      isBlocked: false,
-      online: false,
-      bookmarks: []
-    };
-    db.users.push(newUser);
-    await saveDatabase();
-    res.status(201).json(sanitizeUser(newUser));
+    try {
+      const authResult = await signUpWithEmail(email, password);
+      const uid = authResult.localId as string;
+      const user: User = {
+        id: uid,
+        username,
+        role: "user",
+        isBlocked: false,
+        bookmarks: [],
+        email,
+        online: false,
+      };
+      await setDoc(doc(db, "users", uid), user);
+      return res.status(201).json(buildResponseUser(user));
+    } catch (error: any) {
+      const message = String(error?.message || "Đăng ký không thành công");
+      return res.status(400).json({ error: message });
+    }
   });
 
-  app.get("/api/users", (req, res) => res.json(db.users.map(sanitizeUser)));
+  app.get("/api/users", requireAdmin, async (req, res) => {
+    const users = await getAllDocs<User>("users");
+    return res.json(users.map((user) => buildResponseUser(user)));
+  });
 
-  app.put("/api/users/:id", async (req, res) => {
+  app.put("/api/users/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { username, email, school, grade } = req.body;
-    const user = db.users.find(u => u.id === id);
+    const auth = (req as AuthRequest).auth!;
+    if (auth.uid !== id && auth.uid !== adminUID) {
+      return res.status(403).json({ error: "Không có quyền" });
+    }
+    const user = await getDocById<User>("users", id);
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
     }
-
     if (username && username !== user.username) {
-      if (db.users.some(u => u.username === username)) {
+      const existingUsername = await getUserByUsername(username);
+      if (existingUsername) {
         return res.status(400).json({ error: "Tên đăng nhập đã tồn tại" });
       }
       user.username = username;
     }
-
     if (email !== undefined) user.email = email;
     if (school !== undefined) user.school = school;
     if (grade !== undefined) user.grade = grade;
-
-    await saveDatabase();
-    res.json(sanitizeUser(user));
+    const updated = await saveDoc<User>("users", id, user);
+    return res.json(buildResponseUser(updated!));
   });
 
-  app.post("/api/users/:id/change-password", async (req, res) => {
+  app.post("/api/users/:id/change-password", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
-    const user = db.users.find(u => u.id === id);
-    if (!user) {
+    const auth = (req as AuthRequest).auth!;
+    if (auth.uid !== id && auth.uid !== adminUID) {
+      return res.status(403).json({ error: "Không có quyền" });
+    }
+    const user = await getDocById<User>("users", id);
+    if (!user || !user.email) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
     }
-
-    if (user.password !== currentPassword) {
-      return res.status(400).json({ error: "Mật khẩu hiện tại không chính xác" });
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 6 ký tự" });
     }
-
-    if (!newPassword || newPassword.length < 4) {
-      return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 4 ký tự" });
+    try {
+      const login = await signInWithEmail(user.email, currentPassword);
+      await updatePassword(login.idToken as string, newPassword);
+      return res.json({ success: true });
+    } catch (error: any) {
+      return res.status(400).json({ error: String(error?.message || "Không thể cập nhật mật khẩu") });
     }
-
-    user.password = newPassword;
-    await saveDatabase();
-    res.json({ success: true });
   });
 
-  app.get("/api/documents", (req, res) => res.json(db.documents));
-
-  // Endpoint để lấy danh sách tài liệu đã duyệt
-  app.get("/api/documents/approved", (req, res) => {
-    const approvedDocs = db.documents.filter(d => d.status === 'approved');
-    res.json(approvedDocs);
+  app.get("/api/documents", async (req, res) => {
+    const documents = await getAllDocs<Document>("documents");
+    return res.json(documents);
   });
-// Endpoint lấy tài liệu do một user tải lên (bao gồm cả pending/rejected)
-  app.get("/api/documents/user/:userId", (req, res) => {
+
+  app.get("/api/documents/approved", async (req, res) => {
+    const snapshot = await getDocs(query(collection(db, "documents"), where("status", "==", "approved")));
+    const approvedDocs = snapshot.docs.map((docSnap) => docSnapToObject<Document>(docSnap));
+    return res.json(approvedDocs);
+  });
+
+  app.get("/api/documents/user/:userId", async (req, res) => {
     const { userId } = req.params;
-    const userDocs = db.documents.filter(d => d.authorId === userId);
-    res.json(userDocs);
+    const snapshot = await getDocs(query(collection(db, "documents"), where("authorId", "==", userId)));
+    return res.json(snapshot.docs.map((docSnap) => docSnapToObject<Document>(docSnap)));
   });
 
   app.post("/api/documents/:id/view", async (req, res) => {
     const { id } = req.params;
-    const doc = db.documents.find(d => d.id === id);
-    if (!doc) return res.status(404).json({ error: "Document not found" });
-    doc.viewCount = (doc.viewCount || 0) + 1;
-    await saveDatabase();
-    res.json(doc);
-  });
-
-  app.post("/api/bookmarks", async (req, res) => {
-    const { userId, docId } = req.body;
-    const user = db.users.find(u => u.id === userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.bookmarks) user.bookmarks = [];
-    const index = user.bookmarks.indexOf(docId);
-    if (index === -1) {
-      user.bookmarks.push(docId);
-    } else {
-      user.bookmarks.splice(index, 1);
+    const docRef = doc(db, "documents", id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Document not found" });
     }
-    await saveDatabase();
-    res.json(sanitizeUser(user));
+    const documentData = snapshot.data() as Omit<Document, "id">;
+    await updateDoc(docRef, { viewCount: increment(1) });
+    return res.json({ id, ...documentData, viewCount: ((documentData.viewCount || 0) + 1) });
   });
 
-  app.post("/api/documents", upload.single('file'), async (req: any, res) => {
-    try {
-      const { title, grade, subject, type, school, year, authorId } = req.body;
-      const file = req.file;
+  app.post("/api/bookmarks", requireAuth, async (req, res) => {
+    const { userId, docId } = req.body;
+    if (!userId || !docId) {
+      return res.status(400).json({ error: "userId và docId là bắt buộc" });
+    }
+    const user = await getDocById<User>("users", userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const bookmarks = user.bookmarks ?? [];
+    const index = bookmarks.indexOf(docId);
+    if (index === -1) {
+      bookmarks.push(docId);
+    } else {
+      bookmarks.splice(index, 1);
+    }
+    await saveDoc<User>("users", userId, { bookmarks });
+    return res.json(buildResponseUser({ ...user, bookmarks }));
+  });
 
+  app.post("/api/documents", upload.single("file"), requireAuth, async (req, res) => {
+    try {
+      const { title, grade, subject, type, school, year, authorId } = req.body as Record<string, string>;
+      const file = req.file;
       if (!title || !grade || !subject || !type || !year || !authorId) {
         return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
       }
-
-      const user = db.users.find(u => u.id === authorId);
+      const user = await getDocById<User>("users", authorId);
       if (!user) return res.status(404).json({ error: "User not found" });
-
-      // Xác định trạng thái: admin luôn approved, user luôn pending
-      const status = user.role === 'admin' ? 'approved' : 'pending';
-
-      const newDoc: Document = {
-        id: Math.random().toString(36).substr(2, 9),
+      const status = user.role === "admin" ? "approved" : "pending";
+      const newDoc: Omit<Document, "id"> = {
         title,
-        grade,
+        grade: grade as Document["grade"],
         subject,
         type,
-        school: school || 'Trường THPT',
+        school: school || "Trường THPT",
         year,
         authorId,
         status,
         createdAt: new Date().toISOString(),
-        viewCount: 0
+        viewCount: 0,
       };
-
       if (file) {
         newDoc.fileName = file.originalname;
         newDoc.fileSize = file.size;
@@ -350,360 +496,399 @@ const PORT = process.env.PORT || 3000;
         newDoc.filePath = file.path;
         newDoc.fileContent = `/uploads/${file.filename}`;
       }
-
-      db.documents.push(newDoc);
-      await saveDatabase();
-      res.status(201).json(newDoc);
+      const docRef = await addDoc(collection(db, "documents"), newDoc);
+      return res.status(201).json({ id: docRef.id, ...newDoc });
     } catch (error) {
-      console.error('Upload error:', error);
-      res.status(500).json({ error: "Lỗi upload file" });
+      console.error("Upload error:", error);
+      return res.status(500).json({ error: "Lỗi upload file" });
     }
   });
 
-  // Endpoint để admin xét duyệt tài liệu
-  app.post("/api/admin/documents/:id/review", async (req, res) => {
+  app.post("/api/admin/documents/:id/review", requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { status, reviewNote, adminId } = req.body;
-
-    const doc = db.documents.find(d => d.id === id);
-    if (!doc) return res.status(404).json({ error: "Document not found" });
-
-    doc.status = status;
-    doc.reviewedBy = adminId;
-    doc.reviewedAt = new Date().toISOString();
-    doc.reviewNote = reviewNote;
-
-    await saveDatabase();
-    res.json(doc);
+    const docRef = doc(db, "documents", id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+    const documentData = snapshot.data() as Omit<Document, "id">;
+    await updateDoc(docRef, {
+      status,
+      reviewedBy: adminId,
+      reviewedAt: new Date().toISOString(),
+      reviewNote,
+    });
+    return res.json({ id, ...documentData, status, reviewedBy: adminId, reviewedAt: new Date().toISOString(), reviewNote });
   });
 
-  // Endpoint để lấy danh sách tài liệu pending cho admin
-  app.get("/api/admin/documents/pending", (req, res) => {
-    const pendingDocs = db.documents.filter(d => d.status === 'pending');
-    res.json(pendingDocs);
+  app.get("/api/admin/documents/pending", requireAdmin, async (req, res) => {
+    const snapshot = await getDocs(query(collection(db, "documents"), where("status", "==", "pending")));
+    return res.json(snapshot.docs.map((docSnap) => docSnapToObject<Document>(docSnap)));
   });
 
-  // Endpoint để xóa các tài liệu không có file
-  app.delete("/api/admin/documents/cleanup", async (req, res) => {
-    const docsToDelete = db.documents.filter(d => !d.fileContent && !d.filePath);
-    const deletedIds = docsToDelete.map(d => d.id);
-    
-    db.documents = db.documents.filter(d => d.fileContent || d.filePath);
-    await saveDatabase();
-    
-    res.json({ deletedCount: deletedIds.length, deletedIds });
+  app.delete("/api/admin/documents/cleanup", requireAdmin, async (req, res) => {
+    const snapshot = await getDocs(collection(db, "documents"));
+    const deletions = snapshot.docs.filter((docSnap) => {
+      const data = docSnap.data() as Document;
+      return !data.fileContent && !data.filePath;
+    });
+    await Promise.all(deletions.map((item) => deleteDoc(item.ref)));
+    return res.json({ deletedCount: deletions.length, deletedIds: deletions.map((item) => item.id) });
   });
 
-  app.delete("/api/documents/:id", async (req, res) => {
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
-    db.documents = db.documents.filter(d => d.id !== id);
-    await saveDatabase();
-    res.json({ success: true });
+    const docRef = doc(db, "documents", id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+    await deleteDoc(docRef);
+    return res.json({ success: true });
   });
 
-  app.delete("/api/admin/documents/clear", async (req, res) => {
-    db.documents = [];
-    await saveDatabase();
-    res.json({ success: true });
+  app.delete("/api/admin/documents/clear", requireAdmin, async (req, res) => {
+    const snapshot = await getDocs(collection(db, "documents"));
+    await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+    return res.json({ success: true });
   });
 
-  app.post("/api/community", (req, res) => {
-    const newPost = { 
-      ...req.body, 
-      id: Math.random().toString(36).substr(2, 9), 
-      reports: [], 
+  app.post("/api/community", requireAuth, async (req, res) => {
+    const post: Omit<Post, "id"> = {
+      ...req.body,
+      reports: [],
       replies: [],
       likedBy: [],
-      createdAt: new Date().toISOString() 
-    };
-    db.communityPosts.push(newPost);
-    res.status(201).json(newPost);
+      createdAt: new Date().toISOString(),
+      commentCount: 0,
+    } as Omit<Post, "id">;
+    const docRef = await addDoc(collection(db, "communityPosts"), post);
+    return res.status(201).json({ id: docRef.id, ...post });
   });
 
-  app.post("/api/community/:id/like", (req, res) => {
+  app.post("/api/community/:id/like", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { userId } = req.body;
-    const post = db.communityPosts.find(p => p.id === id);
-    if (!post) return res.status(404).json({ error: "Post not found" });
-
-    if (!post.likedBy) post.likedBy = [];
-    const index = post.likedBy.indexOf(userId);
+    const postRef = doc(db, "communityPosts", id);
+    const snapshot = await getDoc(postRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    const post = snapshot.data() as Omit<Post, "id">;
+    const likedBy = post.likedBy ?? [];
+    const index = likedBy.indexOf(userId);
+    const newLikedBy = [...likedBy];
     if (index === -1) {
-      post.likedBy.push(userId);
+      newLikedBy.push(userId);
     } else {
-      post.likedBy.splice(index, 1);
+      newLikedBy.splice(index, 1);
     }
-    res.json(post);
+    await updateDoc(postRef, { likedBy: newLikedBy });
+    return res.json({ ...post, id, likedBy: newLikedBy });
   });
 
-  app.get("/api/community", (req, res) => {
-    const isAdmin = req.headers['x-user-role'] === 'admin';
-    const userId = req.headers['x-user-id'] as string;
-    res.json(db.communityPosts.map(p => ({
-      ...p,
-      authorId: (p.isAnonymous && !isAdmin && p.authorId !== userId) ? "Anonymous" : p.authorId
-    })));
+  app.get("/api/community", async (req, res) => {
+    const auth = await getAuthInfo(req);
+    const isAdmin = auth?.uid === adminUID || auth?.role === "admin";
+    const userId = auth?.uid;
+    const snapshot = await getDocs(collection(db, "communityPosts"));
+    const posts = snapshot.docs.map((docSnap) => docSnapToObject<Post>(docSnap));
+    return res.json(
+      posts.map((post) => ({
+        ...post,
+        authorId: post.isAnonymous && !isAdmin && post.authorId !== userId ? "Anonymous" : post.authorId,
+      }))
+    );
   });
 
-  function generateUniqueId(existingIds: string[]) {
-    let id = Math.random().toString(36).substr(2, 9);
-    while (existingIds.includes(id)) {
-      id = Math.random().toString(36).substr(2, 9);
-    }
-    return id;
-  }
-
-  app.post("/api/reports", (req, res) => {
+  app.post("/api/reports", requireAuth, async (req, res) => {
     const { postId, reportedBy, reason } = req.body;
-    const user = db.users.find(u => u.id === reportedBy);
+    const user = await getDocById<User>("users", reportedBy);
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
     }
     if (user.bannedUntil && new Date(user.bannedUntil) > new Date()) {
-      return res.status(403).json({ error: `Bạn đã bị hạn chế tố cáo cho đến ${new Date(user.bannedUntil).toLocaleDateString('vi-VN')}.` });
+      return res.status(403).json({ error: `Bạn đã bị hạn chế tố cáo cho đến ${new Date(user.bannedUntil).toLocaleDateString("vi-VN")}.` });
     }
-    const id = generateUniqueId(db.reports.map(r => r.id));
-    const report: Report = {
-      id,
+    const report: Omit<Report, "id"> = {
       postId,
       reportedBy,
       reason,
       status: "pending",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    db.reports.push(report);
-    res.status(201).json(report);
+    const docRef = await addDoc(collection(db, "reports"), report);
+    return res.status(201).json({ id: docRef.id, ...report });
   });
 
-  app.get("/api/reports/user/:userId", (req, res) => {
+  app.get("/api/reports/user/:userId", requireAuth, async (req, res) => {
     const { userId } = req.params;
-    res.json(db.reports.filter(r => r.reportedBy === userId));
+    const auth = (req as AuthRequest).auth!;
+    if (auth.uid !== userId && auth.uid !== adminUID) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const snapshot = await getDocs(query(collection(db, "reports"), where("reportedBy", "==", userId)));
+    return res.json(snapshot.docs.map((docSnap) => docSnapToObject<Report>(docSnap)));
   });
 
-  app.post("/api/reports/:id/appeal", async (req, res) => {
+  app.post("/api/reports/:id/appeal", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { appealReason } = req.body;
-    const report = db.reports.find(r => r.id === id);
-    if (!report) {
+    const snapshot = await getDoc(doc(db, "reports", id));
+    if (!snapshot.exists()) {
       return res.status(404).json({ error: "Báo cáo không tồn tại" });
     }
-    if (report.status === 'pending') {
+    const report = snapshot.data() as Omit<Report, "id">;
+    if (report.status === "pending") {
       return res.status(400).json({ error: "Báo cáo đang chờ xử lý" });
     }
-    report.status = 'pending';
-    report.appealReason = appealReason;
-    report.createdAt = new Date().toISOString();
-    report.resolvedAt = undefined;
-    await saveDatabase();
-    res.json(report);
+    await updateDoc(doc(db, "reports", id), {
+      status: "pending",
+      appealReason,
+      createdAt: new Date().toISOString(),
+      resolvedAt: null,
+    });
+    return res.json({ id, ...report, status: "pending", appealReason, createdAt: new Date().toISOString(), resolvedAt: undefined });
   });
 
-  app.post("/api/admin/reports/:id/complete", async (req, res) => {
+  app.post("/api/admin/reports/:id/complete", requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { adminNote } = req.body;
-    const report = db.reports.find(r => r.id === id);
-    if (!report) {
+    const snapshot = await getDoc(doc(db, "reports", id));
+    if (!snapshot.exists()) {
       return res.status(404).json({ error: "Báo cáo không tồn tại" });
     }
-    report.status = 'resolved';
-    report.resolvedAt = new Date().toISOString();
-    report.adminNote = adminNote;
-    await saveDatabase();
-    res.json(report);
+    await updateDoc(doc(db, "reports", id), {
+      status: "resolved",
+      resolvedAt: new Date().toISOString(),
+      adminNote,
+    });
+    const data = snapshot.data() as Omit<Report, "id">;
+    return res.json({ id, ...data, status: "resolved", resolvedAt: new Date().toISOString(), adminNote });
   });
 
-  app.delete("/api/admin/reports/:id", async (req, res) => {
+  app.delete("/api/admin/reports/:id", requireAdmin, async (req, res) => {
     const { id } = req.params;
-    db.reports = db.reports.filter(r => r.id !== id);
-    await saveDatabase();
-    res.json({ success: true });
+    await deleteDoc(doc(db, "reports", id));
+    return res.json({ success: true });
   });
 
-  app.post("/api/admin/reports/:id/restrict", async (req, res) => {
+  app.post("/api/admin/reports/:id/restrict", requireAdmin, async (req, res) => {
     const { id } = req.params;
-    const report = db.reports.find(r => r.id === id);
-    if (!report) {
+    const reportSnapshot = await getDoc(doc(db, "reports", id));
+    if (!reportSnapshot.exists()) {
       return res.status(404).json({ error: "Báo cáo không tồn tại" });
     }
-    const user = db.users.find(u => u.id === report.reportedBy);
+    const report = reportSnapshot.data() as Report;
+    const user = await getDocById<User>("users", report.reportedBy);
     if (!user) {
       return res.status(404).json({ error: "Người báo cáo không tồn tại" });
     }
     const restrictedUntil = new Date();
     restrictedUntil.setDate(restrictedUntil.getDate() + 7);
-    user.bannedUntil = restrictedUntil.toISOString();
-    await saveDatabase();
-    res.json({ success: true, bannedUntil: user.bannedUntil });
+    await updateDoc(doc(db, "users", user.id), { bannedUntil: restrictedUntil.toISOString() });
+    return res.json({ success: true, bannedUntil: restrictedUntil.toISOString() });
   });
 
-  app.delete("/api/community/:id", (req, res) => {
+  app.delete("/api/community/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
-    db.communityPosts = db.communityPosts.filter(p => p.id !== id);
-    res.json({ success: true });
+    await deleteDoc(doc(db, "communityPosts", id));
+    return res.json({ success: true });
   });
 
-  app.post("/api/community/:id/replies", (req, res) => {
+  app.post("/api/community/:id/replies", requireAuth, async (req, res) => {
     const { id } = req.params;
-    const post = db.communityPosts.find(p => p.id === id);
-    if (!post) return res.status(404).json({ error: "Post not found" });
-
+    const snapshot = await getDoc(doc(db, "communityPosts", id));
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    const post = snapshot.data() as Post;
     const reply = {
       ...req.body,
       id: Math.random().toString(36).substr(2, 9),
       postId: id,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    if (!post.replies) post.replies = [];
-    post.replies.push(reply);
-    post.commentCount = (post.commentCount || 0) + 1;
-    res.status(201).json(reply);
+    const replies = [...(post.replies ?? []), reply];
+    const commentCount = (post.commentCount || 0) + 1;
+    await updateDoc(doc(db, "communityPosts", id), { replies, commentCount });
+    return res.status(201).json(reply);
   });
 
-  app.delete("/api/admin/community/clear", (req, res) => {
-    db.communityPosts = [];
-    res.json({ success: true });
+  app.delete("/api/admin/community/clear", requireAdmin, async (req, res) => {
+    const snapshot = await getDocs(collection(db, "communityPosts"));
+    await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+    return res.json({ success: true });
   });
 
-  // Xử lý logic kết bạn
-  app.post("/api/friends/request", (req, res) => {
+  app.post("/api/friends/request", requireAuth, async (req, res) => {
     const { from, to } = req.body;
-    const existing = db.friendRequests.find(r => (r.from === from && r.to === to) || (r.from === to && r.to === from));
-    if (existing) return res.status(400).json({ error: "Request already exists" });
-    
-    const request: FriendRequest = { id: Math.random().toString(36).substr(2, 9), from, to, status: "pending", createdAt: new Date().toISOString() };
-    db.friendRequests.push(request);
+    const snapshot = await getDocs(collection(db, "friendRequests"));
+    const existing = snapshot.docs.find((docSnap) => {
+      const r = docSnap.data() as FriendRequest;
+      return (r.from === from && r.to === to) || (r.from === to && r.to === from);
+    });
+    if (existing) {
+      return res.status(400).json({ error: "Request already exists" });
+    }
+    const request: FriendRequest = {
+      id: Math.random().toString(36).substr(2, 9),
+      from,
+      to,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(doc(db, "friendRequests", request.id), request);
     io.to(`user:${to}`).emit("friend:request", request);
-    res.json(request);
+    return res.json(request);
   });
 
-  app.post("/api/friends/respond", (req, res) => {
+  app.post("/api/friends/respond", requireAuth, async (req, res) => {
     const { requestId, status } = req.body;
-    const request = db.friendRequests.find(r => r.id === requestId);
-    if (!request) return res.status(404).json({ error: "Request not found" });
-    
-    request.status = status;
+    const requestRef = doc(db, "friendRequests", requestId);
+    const requestSnapshot = await getDoc(requestRef);
+    if (!requestSnapshot.exists()) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    const request = requestSnapshot.data() as Omit<FriendRequest, "id">;
+    await updateDoc(requestRef, { status });
     if (status === "accepted") {
-      const connection: FriendConnection = { id: Math.random().toString(36).substr(2, 9), users: [request.from, request.to], createdAt: new Date().toISOString() };
-      db.connections.push(connection);
+      const connection: FriendConnection = {
+        id: Math.random().toString(36).substr(2, 9),
+        users: [request.from, request.to],
+        createdAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, "connections", connection.id), connection);
       io.to(`user:${request.from}`).emit("friend:connected", connection);
       io.to(`user:${request.to}`).emit("friend:connected", connection);
     }
-    res.json(request);
+    return res.json({ ...request, status });
   });
 
-  app.get("/api/friends/:userId", (req, res) => {
+  app.get("/api/friends/:userId", requireAuth, async (req, res) => {
     const { userId } = req.params;
-    const connections = db.connections.filter(c => c.users.includes(userId));
-    const friendIds = connections.map(c => c.users.find(id => id !== userId));
-    const friends = db.users.filter(u => friendIds.includes(u.id));
-    res.json(friends);
+    const connSnapshot = await getDocs(query(collection(db, "connections"), where("users", "array-contains", userId)));
+    const friendIds = connSnapshot.docs
+      .map((docSnap) => (docSnap.data() as FriendConnection).users.find((id) => id !== userId))
+      .filter(Boolean) as string[];
+    const friends = await getUsersByIds(friendIds);
+    return res.json(friends.map((friend) => buildResponseUser(friend)));
   });
 
-  app.get("/api/messages/:u1/:u2", (req, res) => {
+  app.get("/api/messages/:u1/:u2", requireAuth, async (req, res) => {
     const { u1, u2 } = req.params;
-    const messages = db.messages.filter(m => (m.senderId === u1 && m.receiverId === u2) || (m.senderId === u2 && m.receiverId === u1));
-    res.json(messages);
+    const snapshot = await getDocs(collection(db, "messages"));
+    const messages = snapshot.docs
+      .map((docSnap) => docSnapToObject<Message>(docSnap))
+      .filter((m) => (m.senderId === u1 && m.receiverId === u2) || (m.senderId === u2 && m.receiverId === u1));
+    return res.json(messages);
   });
 
-  app.get("/api/friend-requests/:userId", (req, res) => {
-    res.json(db.friendRequests.filter(r => r.to === req.params.userId && r.status === "pending"));
+  app.get("/api/friend-requests/:userId", requireAuth, async (req, res) => {
+    const snapshot = await getDocs(query(collection(db, "friendRequests"), where("to", "==", req.params.userId), where("status", "==", "pending")));
+    return res.json(snapshot.docs.map((docSnap) => docSnapToObject<FriendRequest>(docSnap)));
   });
 
-  app.get("/api/reviews", (req, res) => res.json(db.reviews));
-  app.post("/api/reviews", (req, res) => {
-    const review = { 
-      ...req.body, 
-      id: Math.random().toString(36).substr(2, 9), 
+  app.get("/api/reviews", async (req, res) => {
+    const reviews = await getAllDocs<Review>("reviews");
+    return res.json(reviews);
+  });
+
+  app.post("/api/reviews", requireAuth, async (req, res) => {
+    const review: Omit<Review, "id"> = {
+      ...req.body,
       likedBy: [],
-      createdAt: new Date().toISOString() 
-    };
-    db.reviews.push(review);
-    res.status(201).json(review);
+      createdAt: new Date().toISOString(),
+    } as Omit<Review, "id">;
+    const docRef = await addDoc(collection(db, "reviews"), review);
+    return res.status(201).json({ id: docRef.id, ...review });
   });
 
-  app.delete("/api/reviews/:id", (req, res) => {
+  app.delete("/api/reviews/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
-    db.reviews = db.reviews.filter(r => r.id !== id);
-    res.json({ success: true });
+    await deleteDoc(doc(db, "reviews", id));
+    return res.json({ success: true });
   });
 
-  app.post("/api/reviews/:id/like", (req, res) => {
+  app.post("/api/reviews/:id/like", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { userId } = req.body;
-    const review = db.reviews.find(r => r.id === id);
-    if (!review) return res.status(404).json({ error: "Review not found" });
-
-    if (!review.likedBy) review.likedBy = [];
-    const index = review.likedBy.indexOf(userId);
-    if (index === -1) {
-      review.likedBy.push(userId);
-    } else {
-      review.likedBy.splice(index, 1);
+    const reviewRef = doc(db, "reviews", id);
+    const snapshot = await getDoc(reviewRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Review not found" });
     }
-    res.json(review);
+    const review = snapshot.data() as Omit<Review, "id">;
+    const likedBy = review.likedBy ?? [];
+    const index = likedBy.indexOf(userId);
+    const newLikedBy = [...likedBy];
+    if (index === -1) {
+      newLikedBy.push(userId);
+    } else {
+      newLikedBy.splice(index, 1);
+    }
+    await updateDoc(reviewRef, { likedBy: newLikedBy });
+    return res.json({ ...review, id, likedBy: newLikedBy });
   });
 
-  app.post("/api/reviews/:id/reply", (req, res) => {
+  app.post("/api/reviews/:id/reply", requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { adminReply, adminId } = req.body;
-    const review = db.reviews.find(r => r.id === id);
-    if (!review) return res.status(404).json({ error: "Review not found" });
-    
-    review.adminReply = adminReply;
-    review.adminId = adminId;
-    res.json(review);
+    const reviewRef = doc(db, "reviews", id);
+    const snapshot = await getDoc(reviewRef);
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+    const review = snapshot.data() as Omit<Review, "id">;
+    await updateDoc(reviewRef, { adminReply, adminId });
+    return res.json({ ...review, id, adminReply, adminId });
   });
 
-  app.get("/api/admin/reports", (req, res) => res.json(db.reports));
-  
-  app.get("/api/admin/support/conversations", (req, res) => {
-    const adminId = "admin";
+  app.get("/api/admin/reports", requireAdmin, async (req, res) => {
+    const reports = await getAllDocs<Report>("reports");
+    return res.json(reports);
+  });
+
+  app.get("/api/admin/support/conversations", requireAdmin, async (req, res) => {
+    const adminId = adminUID;
+    const messagesSnapshot = await getDocs(collection(db, "messages"));
+    const messages = messagesSnapshot.docs.map((docSnap) => docSnapToObject<Message>(docSnap));
     const userIds = new Set<string>();
-    
-    db.messages.forEach(m => {
+    messages.forEach((m) => {
       if (m.senderId === adminId) userIds.add(m.receiverId);
       if (m.receiverId === adminId) userIds.add(m.senderId);
     });
-    
-    const conversations = Array.from(userIds).map(id => {
-      const user = db.users.find(u => u.id === id);
-      const lastMsg = db.messages
-        .filter(m => (m.senderId === adminId && m.receiverId === id) || (m.senderId === id && m.receiverId === adminId))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-        
-      return {
-        id,
-        username: user?.username || "Unknown",
-        lastMessage: lastMsg?.content || "",
-        lastMessageTime: lastMsg?.createdAt || "",
-        online: user?.online || false
-      };
-    }).sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-    
-    res.json(conversations);
+    const conversations = await Promise.all(
+      Array.from(userIds).map(async (id) => {
+        const user = await getDocById<User>("users", id);
+        const lastMsg = messages
+          .filter((m) => (m.senderId === adminId && m.receiverId === id) || (m.senderId === id && m.receiverId === adminId))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        return {
+          id,
+          username: user?.username || "Unknown",
+          lastMessage: lastMsg?.content || "",
+          lastMessageTime: lastMsg?.createdAt || "",
+          online: user?.online || false,
+        };
+      })
+    );
+    return res.json(conversations.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()));
   });
 
-  app.post("/api/admin/block-user", async (req, res) => {
+  app.post("/api/admin/block-user", requireAdmin, async (req, res) => {
     const { userId } = req.body;
-    const user = db.users.find(u => u.id === userId);
-    if (user) {
-      user.isBlocked = true;
-      await saveDatabase();
-    }
-    res.json({ success: true });
+    await updateDoc(doc(db, "users", userId), { isBlocked: true });
+    return res.json({ success: true });
   });
 
-  app.post("/api/admin/unblock-user", async (req, res) => {
+  app.post("/api/admin/unblock-user", requireAdmin, async (req, res) => {
     const { userId } = req.body;
-    const user = db.users.find(u => u.id === userId);
-    if (user) {
-      user.isBlocked = false;
-      await saveDatabase();
-    }
-    res.json({ success: true });
+    await updateDoc(doc(db, "users", userId), { isBlocked: false });
+    return res.json({ success: true });
   });
 
-  // Cấu hình Vite cho môi trường phát triển và sản xuất
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -723,4 +908,7 @@ const PORT = process.env.PORT || 3000;
   });
 }
 
-startServer();
+main().catch((error) => {
+  console.error("Server error:", error);
+  process.exit(1);
+});

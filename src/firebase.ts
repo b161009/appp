@@ -30,5 +30,8 @@ if (typeof window !== 'undefined') {
   analytics = getAnalytics(app);
 }
 
+// Xuất cấu hình Firebase để dùng ở server
+export { firebaseConfig };
+
 // Xuất bản biến app và analytics nếu cần dùng ở nơi khác
 export { app, analytics };
