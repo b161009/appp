@@ -1,8 +1,8 @@
-// Cấu hình Firebase cho ứng dụng ScholaVault
 import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth'; // Thêm dòng này
+import { getFirestore } from 'firebase/firestore'; // Thêm dòng này
 
-// Cấu hình Firebase từ project
 const firebaseConfig = {
   apiKey: "AIzaSyCpnSI4LyB7eFSv7NMRPQnt9AaV_IBUib0",
   authDomain: "tailieuthptthaihoa.firebaseapp.com",
@@ -13,13 +13,16 @@ const firebaseConfig = {
   measurementId: "G-WJD2YEQ9T8"
 };
 
-// Khởi tạo Firebase
 const app = initializeApp(firebaseConfig);
 
-// Khởi tạo Analytics (chỉ trong môi trường browser)
+// Khởi tạo các dịch vụ
+const auth = getAuth(app); // Thêm dòng này
+const db = getFirestore(app); // Thêm dòng này
+
 let analytics;
 if (typeof window !== 'undefined') {
   analytics = getAnalytics(app);
 }
 
-export { app, analytics };
+// Export thêm auth và db để dùng ở các file khác như LoginView.tsx
+export { app, analytics, auth, db };
