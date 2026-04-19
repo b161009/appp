@@ -136,7 +136,7 @@ export default function App() {
       usersData.forEach(u => statusMap[u.id] = u.online);
       setOnlineUsers(statusMap);
 
-      setDocuments(await docsRes.json());
+      setDocuments(await docsData);
       setPosts(await postsRes.json());
       setReviews(await reviewsRes.json());
 
@@ -329,6 +329,16 @@ export default function App() {
       return matchGrade && matchSubject && matchYear && matchSearch;
     });
   }, [documents, vaultFilter]);
+ const userUploadedDocs = useMemo(() => {
+    if (!user?.id || user.role !== 'user') return [];
+    return documents.filter(doc => doc.authorId === user.id);
+  }, [documents, user?.id, user?.role]);
+
+  const pendingDocs = useMemo(() => {
+    if (user?.role !== 'admin') return [];
+    return documents.filter(doc => doc.status === 'pending');
+  }, [documents, user?.role]);
+
 
   const handleSendRequest = async (to: string) => {
     if (!user) return;
@@ -874,6 +884,8 @@ export default function App() {
                    vaultFilter={vaultFilter}
                    setVaultFilter={setVaultFilter}
                    filteredDocs={filteredDocs}
+                   userUploadedDocs={userUploadedDocs}
+                   pendingDocs={pendingDocs}
                    handleDeleteDocument={handleDeleteDocument}
                    users={users}
                    handleBookmark={handleBookmark}
