@@ -764,7 +764,7 @@ export default function App() {
       {/* Thanh điều hướng bên trái */}
       <aside className="w-[220px] bg-sidebar flex flex-col text-white flex-shrink-0 border-r border-white/10 z-20">
         <div className="p-6 text-xl font-black tracking-widest border-b border-white/10 mb-5 text-white">
-           EDU ARCHIVE
+           CLB Tin Hoc 
         </div>
         
         <div className="flex-1 overflow-auto px-2">
