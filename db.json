@@ -1,0 +1,98 @@
+{
+  "documents": [
+    {
+      "id": "irtv9cfu8",
+      "title": "huhu",
+      "grade": "11",
+      "subject": "Toán",
+      "type": "Giữa kì 1",
+      "school": "Trường THPT",
+      "year": "2025",
+      "authorId": "user_cfpsu",
+      "status": "rejected",
+      "createdAt": "2026-04-19T14:54:40.615Z",
+      "viewCount": 0,
+      "fileName": "z7705979342746_2aeeac460d55f79d5241154c3a407707 (1).jpg",
+      "fileSize": 218290,
+      "fileType": "image/jpeg",
+      "filePath": "C:\\Users\\ADMIN\\Downloads\\AppCuaBoMay\\uploads\\1776610480596-479449865.jpg",
+      "fileContent": "/uploads/1776610480596-479449865.jpg",
+      "reviewedBy": "admin",
+      "reviewedAt": "2026-04-19T16:10:30.647Z"
+    }
+  ],
+  "communityPosts": [
+    {
+      "id": "1",
+      "content": "Chào mọi người, có ai có tài liệu ôn thi tốt nghiệp môn Sử không?",
+      "authorId": "user_123",
+      "isAnonymous": true,
+      "reports": [],
+      "replies": [],
+      "likedBy": [],
+      "createdAt": "2026-04-19T14:17:27.928Z",
+      "commentCount": 0
+    }
+  ],
+  "messages": [
+    {
+      "senderId": "user_cfpsu",
+      "receiverId": "admin",
+      "content": "hu",
+      "id": "xw05zktm1",
+      "createdAt": "2026-04-19T16:03:50.910Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "admin",
+      "username": "admin",
+      "password": "admin",
+      "role": "admin",
+      "isBlocked": false,
+      "online": true,
+      "email": "",
+      "school": "ss",
+      "grade": ""
+    },
+    {
+      "id": "user_123",
+      "username": "học-sinh-1",
+      "password": "1234",
+      "role": "user",
+      "isBlocked": false,
+      "online": false
+    },
+    {
+      "id": "user_456",
+      "username": "học-sinh-2",
+      "password": "1234",
+      "role": "user",
+      "isBlocked": false,
+      "online": false
+    },
+    {
+      "id": "user_cfpsu",
+      "username": "b161009",
+      "password": "161009",
+      "role": "user",
+      "isBlocked": false,
+      "online": false,
+      "bookmarks": []
+    }
+  ],
+  "reports": [],
+  "reviews": [
+    {
+      "id": "r1",
+      "userId": "user_123",
+      "type": "rating",
+      "rating": 5,
+      "comment": "Trang web rất hữu ích!",
+      "likedBy": [],
+      "createdAt": "2026-04-19T14:17:27.928Z"
+    }
+  ],
+  "friendRequests": [],
+  "connections": []
+}
