@@ -21,6 +21,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
   setLoading
 }) => {
   const [filter, setFilter] = useState({ subject: 'All', grade: 'All' });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const pendingDocuments = useMemo(() => {
     return documents.filter(doc => doc.status === 'pending');
@@ -169,7 +170,13 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
                         variant="secondary"
                         size="sm"
                         className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-                        onClick={() => window.open(doc.fileContent, '_blank')}
+                        onClick={() => {
+                          if (doc.fileType?.startsWith('image/')) {
+                            setSelectedImage(doc.fileContent);
+                          } else {
+                            window.open(doc.fileContent, '_blank');
+                          }
+                        }}
                       >
                         <Download className="w-3 h-3 mr-1" />
                         Xem file
@@ -208,6 +215,25 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
           ))
         )}
       </div>
+
+      {selectedImage && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
+          <div className="relative max-w-4xl max-h-screen p-4">
+            <img 
+              src={selectedImage} 
+              alt="Document preview" 
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button 
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+              onClick={() => setSelectedImage(null)}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

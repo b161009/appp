@@ -1,5 +1,5 @@
 // Giao diện trang chính hiển thị thống kê, tài liệu mới và bạn bè trực tuyến
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   FileText, 
   MessageSquare, 
@@ -36,6 +36,7 @@ const HomeView: React.FC<HomeViewProps> = ({
   setView,
   openChat
 }) => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const stats = [
     { label: 'Tài liệu', value: documents.length, icon: FileText, color: 'text-blue-500' },
     { label: 'Cộng đồng', value: '1,2k+', icon: MessageSquare, color: 'text-purple-500' },
@@ -71,7 +72,7 @@ const HomeView: React.FC<HomeViewProps> = ({
               {documents.slice(0, 4).map((doc, idx) => {
                 const author = users.find(u => u.id === doc.authorId);
                 return (
-                  <div key={idx} className="bg-white p-4 rounded-xl border border-border-theme flex items-center justify-between group hover:border-accent transition-colors cursor-pointer">
+                  <div key={idx} className="bg-white p-4 rounded-xl border border-border-theme flex items-center justify-between group hover:border-accent transition-colors cursor-pointer" onClick={() => { if (doc.fileContent && doc.fileType?.startsWith('image/')) setSelectedImage(doc.fileContent); }}>
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded bg-slate-50 flex items-center justify-center text-accent">
                         <BookOpen className="w-5 h-5" />
@@ -146,6 +147,12 @@ const HomeView: React.FC<HomeViewProps> = ({
           <span className="text-[10px] font-black uppercase tracking-widest">CLB TIN HỌC</span>
         </div>
       </div>
+
+      {selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
+          <img src={selectedImage} alt="Document" className="max-w-full max-h-full" />
+        </div>
+      )}
     </div>
   );
 };
