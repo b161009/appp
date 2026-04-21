@@ -23,7 +23,7 @@ import {
   increment,
   DocumentData,
 } from "firebase/firestore";
-import { db, firebaseConfig } from "./src/firebase.ts";
+import { db, firebaseConfig } from "../src/firebase.ts";
 import type {
   Document,
   Post,
@@ -33,7 +33,7 @@ import type {
   Review,
   FriendRequest,
   FriendConnection,
-} from "./src/types.ts";
+} from "../src/types.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
