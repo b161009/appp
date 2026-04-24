@@ -11,6 +11,8 @@ interface PendingReviewsViewProps {
   users: UserType[];
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
 }
 
 const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
@@ -18,7 +20,8 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
   documents,
   users,
   loading,
-  setLoading
+  setLoading,
+  onApprove, onReject
 }) => {
   const [filter, setFilter] = useState({ subject: 'All', grade: 'All' });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -166,48 +169,38 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
                     {doc.fileContent && (
+                      <div className="flex gap-2">
+                      {doc.fileContent && (
                       <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-                        onClick={() => {
-                          if (doc.fileType?.startsWith('image/')) {
-                            setSelectedImage(doc.fileContent);
-                          } else {
-                            window.open(doc.fileContent, '_blank');
-                          }
-                        }}
-                      >
-                        <Download className="w-3 h-3 mr-1" />
-                        Xem file
-                      </Button>
+                      variant="secondary"
+                      size="sm"
+                      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+                     onClick={() => setSelectedImage(doc.fileContent)} // Mở thẳng Modal xem ảnh
+                    > 
+                    <Eye className="w-3 h-3 mr-1" /> {/* Đổi icon thành Eye cho đúng chức năng */}
+                    Xem ảnh
+                    </Button>
+                     )}
+                    </div>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-                      onClick={() => {
-                        const note = prompt('Lý do từ chối (tùy chọn):');
-                        handleReview(doc.id, 'rejected', note || undefined);
-                      }}
-                      disabled={loading}
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      Từ chối
-                    </Button>
-                    <Button
-                      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-                      onClick={() => {
-                        const note = prompt('Ghi chú xét duyệt (tùy chọn):');
-                        handleReview(doc.id, 'approved', note || undefined);
-                      }}
-                      disabled={loading}
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      Duyệt
-                    </Button>
+                    {/* Nút Từ chối */}
+                  <Button
+                   variant="danger"
+                   onClick={() => onReject(doc.id)} // Gọi hàm truyền từ App.tsx
+                   disabled={loading}
+>                  
+                   <X className="w-3 h-3 mr-1" /> Từ chối
+                  </Button>
+
+                  {/* Nút Duyệt */}
+                  <Button
+                   onClick={() => onApprove(doc.id)} // Gọi hàm truyền từ App.tsx
+                   disabled={loading}
+>
+                   <Check className="w-3 h-3 mr-1" /> Duyệt
+                  </Button>
                   </div>
                 </div>
               </div>

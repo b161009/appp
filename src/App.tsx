@@ -61,7 +61,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loginRole, setLoginRole] = useState<'initial' | 'admin' | 'user'>('initial');
   const [isRegistering, setIsRegistering] = useState(false);
-  
+
   // --- 2. STATE DỮ LIỆU ---
   const [documents, setDocuments] = useState<Document[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -124,7 +124,24 @@ export default function App() {
     setView('login');
   };
   // --- 3. CÁC HÀM XỬ LÝ (HANDLERS) ---
+  // xử lý ảnh 
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    // Kiểm tra kích thước (ví dụ giới hạn 2MB cho Base64 để tránh quá tải database)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+      return;
+    }
 
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string); // Lưu ảnh dưới dạng chuỗi Base64
+    };
+    reader.readAsDataURL(file);
+  }
+};
   // Xử lý đăng nhập
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -169,7 +186,13 @@ export default function App() {
     setLoading(false);
   }
 };
+  // bổ trợ
+  // State cho Cộng đồng
 
+const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+// State để xem ảnh to (Modal)
+const [selectedImage, setSelectedImage] = useState<string | null>(null);
   // Xử lý Lưu/Bỏ lưu tài liệu (Bookmark)
   const handleBookmark = async (docId: string) => {
     if (!user) return;
@@ -192,7 +215,51 @@ export default function App() {
       console.error("Lỗi bookmark:", err);
     }
   };
+//bài viết
+// 📝 HÀM XỬ LÝ ĐĂNG BÀI (Dán vào App.tsx)
+const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault(); // Chặn reset trang
+  
+  if (!user) {
+    alert("Vui lòng đăng nhập để đăng bài!");
+    return;
+  }
 
+  const formData = new FormData(e.currentTarget);
+  const content = formData.get('content')?.toString();
+  // Kiểm tra checkbox ẩn danh từ CommunityView gửi lên
+  const isAnonymous = formData.get('isAnonymous') === 'true'; 
+
+  if (!content?.trim() && !imagePreview) {
+    alert("Nội dung bài viết không được để trống!");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    // Thêm dữ liệu vào bộ sưu tập "posts" trên Firestore
+    await addDoc(collection(db, "posts"), {
+      content: content,
+      authorId: user.id,
+      authorName: user.username,
+      isAnonymous: isAnonymous, // Lưu trạng thái ẩn danh
+      imageUrl: imagePreview || null,
+      createdAt: new Date().toISOString(), // Lưu thời gian tạo
+      likedBy: [],
+      comments: []
+    });
+    
+    // Reset form sau khi thành công
+    setImagePreview(null);
+    e.currentTarget.reset(); 
+    alert("Đã đăng bài thành công lên cộng đồng!");
+  } catch (error) {
+    console.error("Lỗi Firebase:", error);
+    alert("Lỗi: Không thể kết nối với cơ sở dữ liệu.");
+  } finally {
+    setLoading(false);
+  }
+};
   // Xử lý Thích bài viết (Like Post)
   const handleLikePost = async (postId: string) => {
     if (!user) return;
@@ -210,7 +277,52 @@ export default function App() {
       console.error("Lỗi like bài viết:", err);
     }
   };
-
+  //xóa bv
+  const handleDeletePost = async (postId: string) => {
+  if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+  try {
+    await deleteDoc(doc(db, "posts", postId));
+  } catch (err) {
+    console.error("Lỗi xóa bài:", err);
+  }
+};
+//báo cáo bv 
+const handleReportPost = async (postId: string, reason: string) => {
+  if (!user) return;
+  try {
+    await addDoc(collection(db, "reports"), {
+      targetId: postId,
+      targetType: 'post',
+      reporterId: user.id,
+      reason,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+    alert("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm nhất!");
+  } catch (err) {
+    console.error("Lỗi báo cáo:", err);
+  }
+};
+//trả lời 
+const handleReplySubmit = async (postId: string, content: string) => {
+  if (!user || !content.trim()) return;
+  try {
+    const postRef = doc(db, "posts", postId);
+    const newReply = {
+      id: Date.now().toString(),
+      authorId: user.id,
+      authorName: user.username,
+      content,
+      createdAt: new Date().toISOString()
+    };
+    await updateDoc(postRef, {
+      comments: arrayUnion(newReply)
+    });
+    setReplyingTo(null);
+  } catch (err) {
+    console.error("Lỗi trả lời:", err);
+  }
+};
   // Xử lý Xóa tài liệu (Admin hoặc Chủ sở hữu)
   const handleDeleteDocument = async (id: string) => {
     try {
@@ -220,6 +332,7 @@ export default function App() {
       alert("Lỗi khi xóa tài liệu.");
     }
   };
+//
 
   // Xử lý Tải tài liệu lên (Upload)
   const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -239,7 +352,40 @@ export default function App() {
       createdAt: new Date().toISOString(),
       viewCount: 0
     };
+ // Hàm Duyệt bài
+const handleApproveDocument = async (docId: string) => {
+  try {
+    // Chỉnh sửa "documents" nếu collection của bạn tên là "posts"
+    const docRef = doc(db, "documents", docId); 
+    
+    await updateDoc(docRef, {
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
+      // Có thể thêm người duyệt nếu muốn: approvedBy: user?.id
+    });
+    
+    alert("✅ Đã duyệt tài liệu thành công!");
+  } catch (error) {
+    console.error("Lỗi duyệt bài:", error);
+    alert("❌ Lỗi: Không thể cập nhật trạng thái tài liệu.");
+  }
+};
 
+// Hàm Từ chối bài (Xóa hoặc chuyển trạng thái từ chối)
+const handleRejectDocument = async (docId: string) => {
+  if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) return;
+  
+  try {
+    const docRef = doc(db, "documents", docId);
+    // Bạn có thể chọn xóa hẳn hoặc chỉ đổi status thành 'rejected'
+    await deleteDoc(docRef); 
+    
+    alert("🗑️ Đã từ chối và gỡ bỏ tài liệu.");
+  } catch (error) {
+    console.error("Lỗi từ chối bài:", error);
+    alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
+  }
+};
     setLoading(true);
     try {
       await addDoc(collection(db, "documents"), newDoc);
@@ -287,24 +433,37 @@ export default function App() {
       
       case 'vault':
         return <VaultView 
-          user={user} documents={documents} 
-          filter={vaultFilter} setFilter={setVaultFilter}
-          handleBookmark={handleBookmark} setView={setView as any}
-          handleDeleteDocument={handleDeleteDocument}
+    user={user!} 
+    documents={documents} 
+    filter={vaultFilter} 
+    setFilter={setVaultFilter}
+    handleBookmark={handleBookmark} 
+    setView={setView as any}
+    handleDeleteDocument={handleDeleteDocument}
+    onPreviewImage={(url) => setSelectedImage(url)}
         />;
-
-      case 'community':
-        return <CommunityView 
-          user={user} posts={posts} loading={loading} 
-          setLoading={setLoading} onlineUsers={onlineUsers}
-          users={users} setView={setView as any}
-          handleLikePost={handleLikePost}
-          handleDeletePost={() => {}} handleReportPost={() => {}}
-          handlePostSubmit={() => {}} handleImageUpload={() => {}}
-          imagePreview={null} setImagePreview={() => {}}
-          replyingTo={null} setReplyingTo={() => {}}
-          handleReplySubmit={() => {}}
-        />;
+case 'community':
+        return (
+          <CommunityView 
+            user={user} 
+            posts={posts} 
+            loading={loading} 
+            setLoading={setLoading} 
+            onlineUsers={onlineUsers}
+            users={users} 
+            setView={setView as any}
+            handleLikePost={handleLikePost}
+            handleDeletePost={handleDeletePost}
+            handleReportPost={handleReportPost}
+            handlePostSubmit={handlePostSubmit}
+            handleImageUpload={handleImageUpload}
+            imagePreview={imagePreview}
+            setImagePreview={setImagePreview}
+            replyingTo={replyingTo}
+            setReplyingTo={setReplyingTo}
+            handleReplySubmit={handleReplySubmit}
+          />
+        );
 
       case 'upload':
         return <UploadView user={user} loading={loading} handleDocUpload={handleDocUpload} />;

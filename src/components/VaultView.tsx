@@ -27,6 +27,7 @@ interface VaultViewProps {
     type: string;
     search: string;
   };
+  onPreviewImage: (url: string) => void;
   setFilter: (v: any) => void;
   handleBookmark: (docId: string) => void;
   setView: (v: any) => void;
@@ -40,6 +41,7 @@ const VaultView: React.FC<VaultViewProps> = ({
   setFilter,
   handleBookmark,
   setView,
+  onPreviewImage,
   handleDeleteDocument
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'bookmarks'>('all');
@@ -186,36 +188,50 @@ const VaultView: React.FC<VaultViewProps> = ({
                 return (
                   <tr key={doc.id} className="hover:bg-slate-50/80 transition-all group">
                     <td className="p-5">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm group-hover:scale-110",
-                          doc.type.includes("Ôn tập") ? "bg-emerald-50 text-emerald-500" : "bg-blue-50 text-blue-500"
-                        )}>
-                          <FileCheck className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="text-[13px] font-black text-slate-700 uppercase leading-tight group-hover:text-accent transition-colors">
-                            {doc.title}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <div className="flex items-center gap-2 mt-1.5">
-  <span className="inline-flex items-center justify-center text-[9px] py-0 px-1.5 h-4 border border-slate-200 text-slate-400 font-bold rounded uppercase tracking-tighter bg-transparent">
-    {doc.id.slice(0, 8).toUpperCase()}
-  </span>
-  
-  {doc.status === 'pending' && (
-    <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">
-      Đang chờ duyệt
-    </span>
-  )}
-</div>
-                            {doc.status === 'pending' && (
-                              <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Đang chờ duyệt</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+  <div className="flex items-center gap-4">
+    {/* Icon bên trái - Giữ nguyên style của bạn */}
+    <div className={cn(
+      "w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm group-hover:scale-110",
+      doc.type.includes("Ôn tập") ? "bg-emerald-50 text-emerald-500" : "bg-blue-50 text-blue-500"
+    )}>
+      <FileCheck className="w-5 h-5" />
+    </div>
+
+    {/* Phần nội dung có chức năng nhấn để xem ảnh */}
+    <div 
+      className="flex-1 cursor-pointer" 
+      onClick={() => {
+        if (doc.fileContent) {
+          onPreviewImage(doc.fileContent); // Gọi hàm hiện ảnh từ App.tsx
+        } else {
+          alert("Tài liệu này không có bản xem trước!");
+        }
+      }}
+    >
+      <div className="text-[13px] font-black text-slate-700 uppercase leading-tight group-hover:text-accent transition-colors flex items-center gap-2">
+        {doc.title}
+        {/* Hiển thị nhãn nếu có ảnh để user biết mà nhấn */}
+        {doc.fileContent && (
+          <span className="text-[8px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black animate-pulse">
+            XEM ẢNH
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mt-1.5">
+        <span className="inline-flex items-center justify-center text-[9px] py-0 px-1.5 h-4 border border-slate-200 text-slate-400 font-bold rounded uppercase tracking-tighter bg-transparent">
+          {doc.id.slice(0, 8).toUpperCase()}
+        </span>
+        
+        {doc.status === 'pending' && (
+          <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse flex items-center gap-1">
+             <div className="w-1 h-1 bg-amber-500 rounded-full" /> Đang chờ duyệt
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+</td>
                     
                     <td className="p-5">
                       <div className="flex flex-col">
