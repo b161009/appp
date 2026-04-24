@@ -52,10 +52,15 @@ const AccountView: React.FC<AccountViewProps> = ({
         setUser(updatedUser);
         setIsEditingProfile(false);
         alert('Cập nhật thông tin thành công!');
-      } else {
-        const errorData = await res.json().catch(() => null);
-        alert(errorData?.error || 'Lỗi cập nhật thông tin');
-      }
+      } if (!res.ok) {
+  console.log("API lỗi:", res.status);
+  alert("API chưa sẵn sàng");
+  return;
+}
+
+const updatedUser = await res.json();
+setUser(updatedUser);
+      
     } catch (e) {
       console.error(e);
       alert('Lỗi kết nối máy chủ');
