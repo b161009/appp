@@ -77,8 +77,7 @@ const AccountView: React.FC<AccountViewProps> = ({
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/users/${user.id}/change-password`, {
-        method: 'POST',
+      const res = await fetch(`/api/users/${user.id}/change-password`, {//đỏ đoạn này 404
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
