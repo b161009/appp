@@ -146,35 +146,39 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
                     {doc.fileContent && (
-                      <div className="flex gap-2">
-                      {doc.fileContent && (
-                      <Button
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-                     onClick={() => setSelectedImage(doc.fileContent)} // Mở thẳng Modal xem ảnh
-                    > 
-                    <Eye className="w-3 h-3 mr-1" /> {/* Đổi icon thành Eye cho đúng chức năng */}
-                    Xem ảnh
-                    </Button>
-                     )}
-                    </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                   <div className="flex gap-2">
-  {/* Nút Từ chối */}
+{/* PendingReviewsView.tsx - Đoạn nút bấm đã sửa */}
+<div className="flex gap-2">
+  {/* Nút Xem ảnh - Giữ nguyên logic của bạn */}
+  {doc.fileContent && (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+      onClick={() => setSelectedImage(doc.fileContent)}
+    >
+      <Eye className="w-3 h-3 mr-1" />
+      Xem ảnh
+    </Button>
+  )}
+</div>
+
+<div className="flex gap-2">
+  {/* Nút Từ chối - Đã dọn dẹp dấu thừa */}
   <Button
     variant="danger"
-    onClick={() => onReject(doc.id)} // Gọi trực tiếp hàm xóa từ App.tsx truyền xuống
+    size="sm"
+    className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+    onClick={() => onReject(doc.id)} 
     disabled={loading}
   >                  
     <X className="w-3 h-3 mr-1" /> Từ chối
   </Button>
 
-  {/* Nút Duyệt */}
+  {/* Nút Duyệt - Đã dọn dẹp dấu thừa */}
   <Button
-    onClick={() => onApprove(doc.id)} // Gọi hàm cập nhật Firestore từ App.tsx truyền xuống
+    size="sm"
+    className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
+    onClick={() => onApprove(doc.id)} 
     disabled={loading}
   >
     <Check className="w-3 h-3 mr-1" /> Duyệt
