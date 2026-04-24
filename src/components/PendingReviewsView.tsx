@@ -162,20 +162,25 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {/* Nút Từ chối */}
-                  <Button
-                   variant="danger"
-                   onClick={() => onReject(doc.id)} // Gọi hàm truyền từ App.tsx
-                   disabled={loading}
->                  
-                   <X className="w-3 h-3 mr-1" /> Từ chối
-                  </Button>
+                   <div className="flex gap-2">
+  {/* Nút Từ chối */}
+  <Button
+    variant="danger"
+    onClick={() => onReject(doc.id)} // Gọi trực tiếp hàm xóa từ App.tsx truyền xuống
+    disabled={loading}
+  >                  
+    <X className="w-3 h-3 mr-1" /> Từ chối
+  </Button>
 
-                  {/* Nút Duyệt */}
-                  <Button
-                   onClick={() => onApprove(doc.id)} // Gọi hàm truyền từ App.tsx
-                   disabled={loading}
->
+  {/* Nút Duyệt */}
+  <Button
+    onClick={() => onApprove(doc.id)} // Gọi hàm cập nhật Firestore từ App.tsx truyền xuống
+    disabled={loading}
+  >
+    <Check className="w-3 h-3 mr-1" /> Duyệt
+  </Button>
+</div>
+
                    <Check className="w-3 h-3 mr-1" /> Duyệt
                   </Button>
                   </div>

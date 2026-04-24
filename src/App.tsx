@@ -514,8 +514,13 @@ case 'community':
 
       case 'pending-reviews':
         return <PendingReviewsView 
-          user={user} documents={documents} users={users} 
-          loading={loading} setLoading={setLoading} 
+          user={user} 
+    documents={documents} 
+    users={users} 
+    loading={loading} 
+    setLoading={setLoading}
+    onApprove={handleApproveDocument} 
+    onReject={handleRejectDocument}
         />;
 
       default:
