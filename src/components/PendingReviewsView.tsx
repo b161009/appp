@@ -92,101 +92,68 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
               </Button>
             </div>
           </div>
+{/* Kết thúc phần bộ lọc đã xóa nút 'Xóa lọc' */}
         </div>
       </Card>
 
-      {/* Danh sách tài liệu */}
+      {/* Danh sách tài liệu chờ duyệt */}
       <div className="grid gap-4">
         {filteredDocuments.length === 0 ? (
-          <Card className="shadow-md">
-            <div className="p-12 text-center text-slate-400">
-              <Check className="w-16 h-16 mx-auto mb-4 opacity-40" />
-              <div className="text-lg font-bold uppercase tracking-wider">Không có tài liệu nào chờ duyệt</div>
-              <div className="text-sm mt-2">Tất cả tài liệu đã được xử lý!</div>
+          <div className="p-20 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200">
+            <Check className="w-12 h-12 mx-auto mb-4 text-slate-200" />
+            <div className="text-slate-400 font-bold uppercase tracking-widest">
+              Sạch bóng tài liệu chờ duyệt
             </div>
-          </Card>
+          </div>
         ) : (
           filteredDocuments.map(doc => (
-            <Card key={doc.id} className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-warning">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-800 mb-2">{doc.title}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-slate-600 mb-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span>{doc.subject}</span>
+            <Card key={doc.id} className="border-none ring-1 ring-slate-200 hover:shadow-lg transition-all">
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800 leading-tight mb-2">{doc.title}</h3>
+                    <div className="flex flex-wrap gap-4 text-[11px] font-bold text-slate-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-accent" /> {doc.subject}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <span>{doc.grade}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-accent" /> {doc.year}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{doc.year}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <span>{getAuthorName(doc.authorId)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-accent" /> {getAuthorName(doc.authorId)}
                       </div>
                     </div>
-                    <div className="text-sm text-slate-500">
-                      {doc.school && `Trường: ${doc.school}`}
-                      <br />
-                      Ngày tải lên: {new Date(doc.createdAt).toLocaleDateString('vi-VN')}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-warning bg-warning/10">
-                      Chờ duyệt
-                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <div>
                     {doc.fileContent && (
-{/* PendingReviewsView.tsx - Đoạn nút bấm đã sửa */}
-<div className="flex gap-2">
-  {/* Nút Xem ảnh - Giữ nguyên logic của bạn */}
-  {doc.fileContent && (
-    <Button
-      variant="secondary"
-      size="sm"
-      className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-      onClick={() => setSelectedImage(doc.fileContent)}
-    >
-      <Eye className="w-3 h-3 mr-1" />
-      Xem ảnh
-    </Button>
-  )}
-</div>
-
-<div className="flex gap-2">
-  {/* Nút Từ chối - Đã dọn dẹp dấu thừa */}
-  <Button
-    variant="danger"
-    size="sm"
-    className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-    onClick={() => onReject(doc.id)} 
-    disabled={loading}
-  >                  
-    <X className="w-3 h-3 mr-1" /> Từ chối
-  </Button>
-
-  {/* Nút Duyệt - Đã dọn dẹp dấu thừa */}
-  <Button
-    size="sm"
-    className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-    onClick={() => onApprove(doc.id)} 
-    disabled={loading}
-  >
-    <Check className="w-3 h-3 mr-1" /> Duyệt
-  </Button>
-</div>
-
-                   <Check className="w-3 h-3 mr-1" /> Duyệt
-                  </Button>
+                      <Button
+                        variant="secondary"
+                        className="h-9 px-4 font-black uppercase text-[10px] tracking-widest"
+                        onClick={() => setSelectedImage(doc.fileContent || null)}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-2" /> Xem file
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="danger"
+                      className="h-9 px-4 font-black uppercase text-[10px] tracking-widest"
+                      onClick={() => onReject(doc.id)}
+                      disabled={loading}
+                    >
+                      <X className="w-3.5 h-3.5 mr-2" /> Từ chối
+                    </Button>
+                    <Button
+                      className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-accent text-white"
+                      onClick={() => onApprove(doc.id)}
+                      disabled={loading}
+                    >
+                      <Check className="w-3.5 h-3.5 mr-2" /> Duyệt bài
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -195,20 +162,23 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
         )}
       </div>
 
+      {/* Modal xem ảnh phóng to */}
       {selectedImage && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-4xl max-h-screen p-4">
+        <div 
+          className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-[100] p-4" 
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-5xl w-full h-full flex items-center justify-center">
             <img 
               src={selectedImage} 
-              alt="Document preview" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              alt="Preview" 
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" 
             />
             <button 
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+              className="absolute top-0 right-0 text-white p-2 hover:scale-110 transition-transform"
               onClick={() => setSelectedImage(null)}
             >
-              ×
+              <X className="w-8 h-8" />
             </button>
           </div>
         </div>
