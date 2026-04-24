@@ -3,7 +3,8 @@ import React from 'react';
 import { Bookmark } from 'lucide-react';
 import type { User, Document } from '../types';
 import { Button, Card, Badge } from './UI';
-
+import { db } from '../firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 interface BookmarksViewProps {
   user: User | null;
   documents: Document[];
@@ -56,10 +57,14 @@ const BookmarksView: React.FC<BookmarksViewProps> = ({
                           href={doc.fileContent}
                           download={doc.title}
                           className="text-accent cursor-pointer font-black hover:underline uppercase text-[10px] tracking-tight mr-3"
-                          onClick={async () => {
                             // Tăng viewCount khi tải
-                            await fetch(`/api/documents/${doc.id}/view`, { method: 'POST' });
-                          }}
+                          onClick={async () => {
+                          const docRef = doc(db, "documents", doc.id);
+                          await updateDoc(docRef, {
+                          viewCount: increment(1)
+                        });
+                  }}
+                          
                         >
                           Tải về máy
                         </a>
