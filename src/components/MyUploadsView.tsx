@@ -175,7 +175,7 @@ const MyUploadsView: React.FC<MyUploadsViewProps> = ({
                     {doc.fileContent && (
                       <Button
                         variant="secondary"
-                        size="sm"
+                       
                         className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
                         onClick={() => window.open(doc.fileContent, '_blank')}
                       >
@@ -185,7 +185,7 @@ const MyUploadsView: React.FC<MyUploadsViewProps> = ({
                     )}
                     <Button
                       variant="danger"
-                      size="sm"
+                  
                       className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
                       onClick={() => {
                         if (confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) {

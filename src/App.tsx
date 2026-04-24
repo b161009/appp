@@ -19,7 +19,8 @@ import {
 } from 'firebase/auth';
 import { 
   collection, onSnapshot, query, orderBy, limit, 
-  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc 
+  doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc, 
+  Firestore
 } from 'firebase/firestore';
 
 // --- TYPES & CONSTANTS ---
@@ -147,7 +148,7 @@ export default function App() {
   if (!window.confirm(`Bạn có chắc chắn muốn ${currentStatus ? 'Chặn' : 'Bỏ chặn'} người dùng này?`)) return;
   
   try {
-    const userRef = doc(db, "users", userId);
+    const userRef = fDoc(db, "users", userId);
     await updateDoc(userRef, {
       isBlocked: !currentStatus
     });
@@ -212,13 +213,13 @@ const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const handleBookmark = async (docId: string) => {
     if (!user) return;
     try {
-      const userRef = doc(db, "users", user.id);
-      const isBookmarked = user.bookmarks?.includes(docId);
-      
-      // Cập nhật local state trước để UI mượt mà
-      const updatedBookmarks = isBookmarked 
-        ? user.bookmarks.filter(id => id !== docId)
-        : [...(user.bookmarks || []), docId];
+      const userRef = fDoc(db, "users", user.id);
+      const currentBookmarks = user.bookmarks || []; 
+    const isBookmarked = currentBookmarks.includes(docId);
+    
+    const updatedBookmarks = isBookmarked 
+      ? currentBookmarks.filter(id => id !== docId)
+      : [...currentBookmarks, docId];
       
       setUser({ ...user, bookmarks: updatedBookmarks });
 
@@ -279,7 +280,7 @@ const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   const handleLikePost = async (postId: string) => {
     if (!user) return;
     try {
-      const postRef = doc(db, "posts", postId);
+      const postRef = fDoc(db, "posts", postId);
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
@@ -296,7 +297,7 @@ const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   const handleDeletePost = async (postId: string) => {
   if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
   try {
-    await deleteDoc(doc(db, "posts", postId));
+    await deleteDoc(fDoc(db, "posts", postId));
   } catch (err) {
     console.error("Lỗi xóa bài:", err);
   }
@@ -322,7 +323,7 @@ const handleReportPost = async (postId: string, reason: string) => {
 const handleReplySubmit = async (postId: string, content: string) => {
   if (!user || !content.trim()) return;
   try {
-    const postRef = doc(db, "posts", postId);
+    const postRef = fDoc(db, "posts", postId);
     const newReply = {
       id: Date.now().toString(),
       authorId: user.id,
@@ -341,7 +342,7 @@ const handleReplySubmit = async (postId: string, content: string) => {
   // Xử lý Xóa tài liệu (Admin hoặc Chủ sở hữu)
   const handleDeleteDocument = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "documents", id));
+      await deleteDoc(fDoc(db, "documents", id));
       alert("Đã xóa tài liệu thành công!");
     } catch (err) {
       alert("Lỗi khi xóa tài liệu.");
@@ -368,10 +369,22 @@ const handleReplySubmit = async (postId: string, content: string) => {
       viewCount: 0
     };
  // Hàm Duyệt bài
+
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "documents"), newDoc);
+      alert("Tải lên thành công! Vui lòng chờ Admin phê duyệt.");
+      setView('vault');
+    } catch (err) {
+      alert("Lỗi tải lên.");
+    } finally {
+      setLoading(false);
+    }
+  };
 const handleApproveDocument = async (docId: string) => {
   try {
     // Chỉnh sửa "documents" nếu collection của bạn tên là "posts"
-    const docRef = doc(db, "documents", docId); 
+    const docRef = fDoc(db, "documents", docId); 
     
     await updateDoc(docRef, {
       status: 'approved',
@@ -391,7 +404,7 @@ const handleRejectDocument = async (docId: string) => {
   if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) return;
   
   try {
-    const docRef = doc(db, "documents", docId);
+    const docRef = fDoc(db, "documents", docId);
     // Bạn có thể chọn xóa hẳn hoặc chỉ đổi status thành 'rejected'
     await deleteDoc(docRef); 
     
@@ -401,18 +414,6 @@ const handleRejectDocument = async (docId: string) => {
     alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
   }
 };
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "documents"), newDoc);
-      alert("Tải lên thành công! Vui lòng chờ Admin phê duyệt.");
-      setView('vault');
-    } catch (err) {
-      alert("Lỗi tải lên.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // --- 4. LOGIC TÌM KIẾM TOÀN CỤC ---
   const filteredDocuments = useMemo(() => {
     return documents.filter(d => 
@@ -617,3 +618,7 @@ case 'community':
       </div>
     </div>
   );}
+function doc(db: Firestore, arg1: string, userId: string) {
+  throw new Error('Function not implemented.');
+}
+

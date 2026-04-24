@@ -65,7 +65,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onToggle
                 <td className="p-4 text-center">
                   {u.role !== 'admin' && (
                     <Button
-                      size="sm"
+                      
                       variant={u.isBlocked ? "secondary" : "danger"}
                       className="h-8 rounded-lg font-black text-[9px] uppercase tracking-tighter"
                       onClick={() => onToggleBlock(u.id, !!u.isBlocked)}

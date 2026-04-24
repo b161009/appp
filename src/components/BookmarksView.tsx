@@ -4,7 +4,7 @@ import { Bookmark } from 'lucide-react';
 import type { User, Document } from '../types';
 import { Button, Card, Badge } from './UI';
 import { db } from '../firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { doc as fDoc, updateDoc, increment } from 'firebase/firestore';
 interface BookmarksViewProps {
   user: User | null;
   documents: Document[];
@@ -59,7 +59,7 @@ const BookmarksView: React.FC<BookmarksViewProps> = ({
                           className="text-accent cursor-pointer font-black hover:underline uppercase text-[10px] tracking-tight mr-3"
                             // Tăng viewCount khi tải
                           onClick={async () => {
-                          const docRef = doc(db, "documents", doc.id);
+                          const docRef = fDoc(db, "documents", doc.id);
                           await updateDoc(docRef, {
                           viewCount: increment(1)
                         });
