@@ -82,11 +82,11 @@ export default function App() {
           id: fireUser.uid,
           username: fireUser.email?.split('@')[0] || 'Học sinh',
           email: fireUser.email || '',
-          role: fireUser.email === 'admin@gmail.com' ? 'admin' : 'user',
+          role: fireUser.email === 'adminhehe@gmail.com' ? 'admin' : 'user',
           isBlocked: false,
           bookmarks: [],
           school: 'THPT Thái Hòa',
-          grade: '12'
+          grade: ''
         });
       } else {
         setUser(null);
