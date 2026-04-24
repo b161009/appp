@@ -145,7 +145,7 @@ export default function App() {
       id: loggedInUser.uid,
       username: emailInput.split('@')[0],
       email: loggedInUser.email || '',
-      role: email === 'admin@gmail.com' ? 'admin' : 'user', // Xác định quyền ở đây
+      role: email === 'adminhehe@gmail.com' ? 'admin' : 'user', // Xác định quyền ở đây
       isBlocked: false,
       bookmarks: [],
       school: 'THPT Thái Hòa'
