@@ -8,7 +8,7 @@ export interface Document {
   school: string;
   year: string;
   authorId: string;
-  fileContent?: string; // Nội dung file mã hóa Base64 hoặc URL tải về
+  fileContent?: string|null; // Nội dung file mã hóa Base64 hoặc URL tải về
   fileName?: string; // Tên file gốc
   fileSize?: number; // Kích thước file
   fileType?: string; // Loại file (MIME type)
@@ -91,6 +91,7 @@ export interface Review {
 }
 
 export interface User {
+  anonymousId?: string;
   id: string;
   username: string;
   password?: string;

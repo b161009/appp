@@ -164,7 +164,7 @@ export default function App() {
   const fd = new FormData(e.currentTarget);
   const emailInput = fd.get('username')?.toString() || '';
   const password = fd.get('password')?.toString() || '';
-  
+  const randomId = Math.floor(1000 + Math.random() * 9000).toString();
   // Tự động thêm đuôi email nếu người dùng chỉ nhập tên
   const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
 
@@ -174,16 +174,28 @@ export default function App() {
     const loggedInUser = userCredential.user;
 
     // 1. Tạo object user mới
-    const userData: User = {
-      id: loggedInUser.uid,
-      username: emailInput.split('@')[0],
-      email: loggedInUser.email || '',
-      role: email === 'adminhehe@gmail.com' ? 'admin' : 'user', // Xác định quyền ở đây
-      isBlocked: false,
-      bookmarks: [],
-      school: 'THPT Thái Hòa'
-    };
+    const userRef = fDoc(db, "users", loggedInUser.uid);
+      
+      // Tạo mã 4 số ngẫu nhiên dự phòng
+      const newRandomId = Math.floor(1000 + Math.random() * 9000).toString();
 
+      const userData: User = {
+        id: loggedInUser.uid,
+        username: emailInput.split('@')[0],
+        email: loggedInUser.email || '',
+        role: email === 'adminhehe@gmail.com' ? 'admin' : 'user',
+        isBlocked: false,
+        bookmarks: [],
+        school: 'THPT Thái Hòa',
+        // Gán anonymousId nếu có trong database (logic này sẽ được Firebase tự động sync ở useEffect)
+        anonymousId: newRandomId 
+      };
+
+      // Cập nhật lên Firestore để đảm bảo user luôn có anonymousId cố định
+      // Dùng { merge: true } để không ghi đè dữ liệu cũ
+      await updateDoc(userRef, {
+        anonymousId: newRandomId // Sẽ chỉ cập nhật nếu field này chưa tồn tại hoặc cần refresh
+      }).catch(async () => {});
     // 2. Kích hoạt React Re-render
     setUser(userData); 
 
@@ -235,10 +247,8 @@ const [selectedImage, setSelectedImage] = useState<string | null>(null);
 // 📝 HÀM XỬ LÝ ĐĂNG BÀI (Dán vào App.tsx)
 const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault(); // Chặn reset trang
-  
   if (!user) {
-    alert("Vui lòng đăng nhập để đăng bài!");
-    return;
+    return
   }
 
   const formData = new FormData(e.currentTarget);
@@ -366,7 +376,8 @@ const handleReplySubmit = async (postId: string, content: string) => {
       authorId: user.id,
       status: 'pending', // Chờ admin duyệt
       createdAt: new Date().toISOString(),
-      viewCount: 0
+      viewCount: 0,
+      fileContent: imagePreview
     };
  // Hàm Duyệt bài
 
@@ -374,6 +385,7 @@ const handleReplySubmit = async (postId: string, content: string) => {
     try {
       await addDoc(collection(db, "documents"), newDoc);
       alert("Tải lên thành công! Vui lòng chờ Admin phê duyệt.");
+      setImagePreview(null);
       setView('vault');
     } catch (err) {
       alert("Lỗi tải lên.");
@@ -618,7 +630,5 @@ case 'community':
       </div>
     </div>
   );}
-function doc(db: Firestore, arg1: string, userId: string) {
-  throw new Error('Function not implemented.');
-}
+
 

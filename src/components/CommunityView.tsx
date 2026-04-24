@@ -18,7 +18,10 @@ interface CommunityViewProps {
   setView: (v: any) => void;
   handleLikePost: (id: string) => void;
   handleDeletePost: (id: string) => void;
-  handleReportPost: (id: string) => void;
+  replyingTo: string | null; 
+  setReplyingTo: React.Dispatch<React.SetStateAction<string | null>>;
+  handleReplySubmit: (postId: string, content: string) => Promise<void>;
+  handleReportPost: (postId: string, reason: string) => void;
   handlePostSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   imagePreview: string | null;
@@ -165,7 +168,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                              {postAuthor?.username || 'Thành viên Thái Hòa'}
+                              {postAuthor?.username || `Thành viên ẩn danh - ${user?.anonymousId || '0000'}`}
                             </span>
                             {postAuthor?.role === 'admin' && (
                               <Badge className="bg-accent/10 text-accent border-none text-[8px] font-black px-2 py-0.5 rounded-md">ADMIN</Badge>
@@ -192,7 +195,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                           </button>
                         ) : (
                           <button 
-                            onClick={() => handleReportPost(post.id)}
+                           onClick={() => handleReportPost(post.id, "Nội dung không phù hợp")}
                             className="p-2.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all active:scale-90"
                             title="Báo cáo"
                           >
