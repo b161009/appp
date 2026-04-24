@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client';
 import type { Document, Post, Review, User, Report, FriendRequest, Message } from './types';
 
 // --- Thành phần & hằng số ---
@@ -162,44 +162,44 @@ export default function App() {
     fetchData();
   }, [view, fetchData]);
 
-  useEffect(() => {
-    if (user) {
-      socket = io();
-      socket.emit('user:online', user.id);
+  // useEffect(() => {
+  //   // if (user) {
+  //   //   socket = io();
+  //   //   socket.emit('user:online', user.id);
 
-      socket.on('friend:request', (req: FriendRequest) => {
-        setFriendRequests(prev => [req, ...prev]);
-      });
+  //   //   socket.on('friend:request', (req: FriendRequest) => {
+  //   //     setFriendRequests(prev => [req, ...prev]);
+  //   //   });
 
-      socket.on('message:receive', (msg: Message) => {
-        setChatMessages(prev => [...prev, msg]);
-        if (user?.role === 'admin') {
-          fetch('/api/admin/support/conversations')
-            .then(res => res.json())
-            .then(setSupportConversations);
-        }
-      });
+  //   //   socket.on('message:receive', (msg: Message) => {
+  //   //     setChatMessages(prev => [...prev, msg]);
+  //   //     if (user?.role === 'admin') {
+  //   //       fetch('/api/admin/support/conversations')
+  //   //         .then(res => res.json())
+  //   //         .then(setSupportConversations);
+  //   //     }
+  //   //   });
+  
+  //     socket.on('user:status', (data: { userId: string, online: boolean }) => {
+  //       setOnlineUsers(prev => ({ ...prev, [data.userId]: data.online }));
+  //     });
 
-      socket.on('user:status', (data: { userId: string, online: boolean }) => {
-        setOnlineUsers(prev => ({ ...prev, [data.userId]: data.online }));
-      });
+  //     socket.on('user:status:all', (usersList: { id: string, online: boolean }[]) => {
+  //       const statusMap: any = {};
+  //       usersList.forEach(u => statusMap[u.id] = u.online);
+  //       setOnlineUsers(statusMap);
+  //     });
 
-      socket.on('user:status:all', (usersList: { id: string, online: boolean }[]) => {
-        const statusMap: any = {};
-        usersList.forEach(u => statusMap[u.id] = u.online);
-        setOnlineUsers(statusMap);
-      });
+  //     socket.on('message:recalled', (data: { messageId: string }) => {
+  //       setChatMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, isRecalled: true } : m));
+  //     });
 
-      socket.on('message:recalled', (data: { messageId: string }) => {
-        setChatMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, isRecalled: true } : m));
-      });
-
-      fetchSocialData();
-      return () => {
-        socket.disconnect();
-      };
-    }
-  }, [user, fetchSocialData]);
+  //     fetchSocialData();
+  //     return () => {
+  //       socket.disconnect();
+  //     };
+  //   }
+   [user, fetchSocialData];
 
   useEffect(() => {
     if (view !== 'community') {
