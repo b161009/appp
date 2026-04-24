@@ -142,6 +142,21 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 };
+  // block
+  const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
+  if (!window.confirm(`Bạn có chắc chắn muốn ${currentStatus ? 'Chặn' : 'Bỏ chặn'} người dùng này?`)) return;
+  
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      isBlocked: !currentStatus
+    });
+    alert("Cập nhật trạng thái người dùng thành công!");
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái user:", error);
+    alert("Không thể cập nhật trạng thái người dùng.");
+  }
+};
   // Xử lý đăng nhập
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
