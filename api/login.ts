@@ -6,7 +6,7 @@ export default function handler(req: any, res: any) {
   const { email, password } = req.body
 
   // test tạm
-  if (email === "admin@gmail.com" && password === "123456") {
+  if (email === "admin@gmail.com" && password === "12345678") {
     return res.status(200).json({
       user: {
         id: 1,
