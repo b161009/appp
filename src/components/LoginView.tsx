@@ -1,162 +1,103 @@
 import React, { useState } from 'react'
-import { School } from 'lucide-react'
+import { School, ArrowLeft } from 'lucide-react'
 import { Button } from './UI'
-import { auth } from "../firebase"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
 
 interface LoginViewProps {
   loginRole: 'initial' | 'admin' | 'user'
   setLoginRole: (r: 'initial' | 'admin' | 'user') => void
   loading: boolean
+  isRegistering: boolean
+  setIsRegistering: (v: boolean) => void
+  handleLogin: (e: React.FormEvent<HTMLFormElement>) => void // Nhận hàm từ App.tsx
 }
 
 const LoginView: React.FC<LoginViewProps> = ({
   loginRole,
-  setLoginRole
+  setLoginRole,
+  loading,
+  isRegistering,
+  setIsRegistering,
+  handleLogin
 }) => {
-
-  const [loading, setLoading] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false)
-
-  // 🧠 LOGIN
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-
-    const form = new FormData(e.currentTarget)
-    const email = String(form.get("username"))
-    const password = String(form.get("password"))
-
-    try {
-      // 👑 ADMIN
-      if (loginRole === "admin") {
-        if (email === "adminhehe@gmail.com" && password === "admin999") {
-          alert("🔥 Đăng nhập admin thành công")
-          console.log("ADMIN LOGIN")
-          return
-        } else {
-          alert("Sai tài khoản admin")
-          return
-        }
-      }
-
-      // 👤 USER
-      const res = await signInWithEmailAndPassword(auth, email, password)
-
-      console.log("USER LOGIN:", res.user.email)
-      alert("Đăng nhập thành công")
-
-    } catch (err: any) {
-      alert("Sai tài khoản hoặc mật khẩu")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 🧠 REGISTER
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-
-    const form = new FormData(e.currentTarget)
-    const email = String(form.get("username"))
-    const password = String(form.get("password"))
-    const confirm = String(form.get("confirmPassword"))
-
-    if (password !== confirm) {
-      alert("Mật khẩu không khớp")
-      setLoading(false)
-      return
-    }
-
-    try {
-      const res = await createUserWithEmailAndPassword(auth, email, password)
-
-      console.log("REGISTER:", res.user.email)
-      alert("Đăng ký thành công")
-      setIsRegistering(false)
-
-    } catch (err: any) {
-      alert("Email đã tồn tại hoặc lỗi")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg p-4 font-sans">
-      <div className="w-full max-w-sm bg-white rounded-lg border border-border-theme shadow-lg overflow-hidden">
-
-        <div className="bg-sidebar p-10 text-white text-center">
-          <School className="w-16 h-16 mx-auto mb-4 opacity-50 text-white" />
-          <h1 className="text-2xl font-black uppercase">Tài Liệu <br />THPT Thái Hòa</h1>
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
+        
+        {/* LOGO */}
+        <div className="text-center">
+          <div className="inline-flex p-4 bg-accent/10 rounded-2xl mb-4">
+            <School className="w-10 h-10 text-accent" />
+          </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-800">
+            {loginRole === 'admin' ? 'Quản trị hệ thống' : 'Cổng học tập Thái Hòa'}
+          </h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
+            {isRegistering ? 'Tạo tài khoản mới' : 'Vui lòng đăng nhập để tiếp tục'}
+          </p>
         </div>
 
         {loginRole === 'initial' ? (
-          <div className="p-8 space-y-4">
-            <h2 className="text-center text-[11px] font-black uppercase opacity-40 mb-6">Bạn là ai?</h2>
-
-            <Button onClick={() => setLoginRole('user')} className="w-full h-12">
-              TÔI LÀ HỌC SINH
+          <div className="grid grid-cols-1 gap-4 pt-4">
+            <Button onClick={() => setLoginRole('user')} className="h-14 rounded-2xl font-black uppercase tracking-widest text-[11px]">
+              Dành cho Học sinh
             </Button>
-
-            <Button onClick={() => setLoginRole('admin')} className="w-full h-12">
-              TÔI LÀ QUẢN TRỊ VIÊN
+            <Button onClick={() => setLoginRole('admin')} variant="secondary" className="h-14 rounded-2xl font-black uppercase tracking-widest text-[11px]">
+              Dành cho Quản trị viên
             </Button>
           </div>
-
         ) : (
-          <form onSubmit={isRegistering ? handleRegister : handleLogin} className="p-8 space-y-5">
-
-            <button type="button" onClick={() => setLoginRole('initial')}>
-              ← Quay lại
+          <form onSubmit={handleLogin} className="space-y-4 pt-4">
+            <button 
+              type="button" 
+              className="text-[10px] font-black uppercase text-slate-400 hover:text-accent mb-2 flex items-center gap-1"
+              onClick={() => {setLoginRole('initial'); setIsRegistering(false)}}
+            >
+              <ArrowLeft className="w-3 h-3" /> Quay lại
             </button>
 
-            {/* EMAIL */}
-            <input
-              name="username"
-              type="email"
-              required
-              placeholder="Email..."
-              className="w-full h-11 border px-4"
-            />
-
-            {/* PASSWORD */}
-            <input
-              name="password"
-              type="password"
-              required
-              placeholder="Mật khẩu..."
-              className="w-full h-11 border px-4"
-            />
-
-            {/* CONFIRM */}
-            {isRegistering && loginRole === "user" && (
+            <div className="space-y-3">
               <input
-                name="confirmPassword"
+                name="username"
+                type="text"
+                required
+                placeholder={loginRole === 'admin' ? "Tên đăng nhập QTV..." : "Email hoặc Tên đăng nhập..."}
+                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+              />
+              <input
+                name="password"
                 type="password"
                 required
-                placeholder="Xác nhận mật khẩu..."
-                className="w-full h-11 border px-4"
+                placeholder="Mật khẩu..."
+                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
               />
-            )}
+              {isRegistering && (
+                 <input
+                 name="confirmPassword"
+                 type="password"
+                 required
+                 placeholder="Xác nhận mật khẩu..."
+                 className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+               />
+              )}
+            </div>
 
-            {/* SWITCH */}
-            {loginRole === "user" && (
+            {loginRole === 'user' && (
               <div className="text-center">
-                <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
-                  {isRegistering ? "Đã có tài khoản?" : "Chưa có tài khoản?"}
+                <button 
+                  type="button" 
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  className="text-[10px] font-black uppercase text-accent hover:underline"
+                >
+                  {isRegistering ? "Đã có tài khoản? Đăng nhập ngay" : "Chưa có tài khoản? Đăng ký ngay"}
                 </button>
               </div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full h-12">
-              {loading ? "ĐANG XỬ LÝ..." : (isRegistering ? "ĐĂNG KÝ" : "ĐĂNG NHẬP")}
+            <Button type="submit" disabled={loading} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-accent/20">
+              {loading ? "Đang xử lý..." : (isRegistering ? "Bắt đầu đăng ký" : "Xác nhận đăng nhập")}
             </Button>
-
           </form>
         )}
-
       </div>
     </div>
   )
