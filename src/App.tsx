@@ -127,26 +127,48 @@ export default function App() {
 
   // Xử lý đăng nhập
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const emailInput = fd.get('username')?.toString() || '';
-    const password = fd.get('password')?.toString() || '';
-    
-    // Tự động thêm đuôi @gmail.com nếu người dùng chỉ nhập tên
-    const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
+  e.preventDefault();
+  const fd = new FormData(e.currentTarget);
+  const emailInput = fd.get('username')?.toString() || '';
+  const password = fd.get('password')?.toString() || '';
+  
+  // Tự động thêm đuôi email nếu người dùng chỉ nhập tên
+  const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
 
-    setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
+  setLoading(true);
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const loggedInUser = userCredential.user;
+
+    // 1. Tạo object user mới
+    const userData: User = {
+      id: loggedInUser.uid,
+      username: emailInput.split('@')[0],
+      email: loggedInUser.email || '',
+      role: email === 'admin@gmail.com' ? 'admin' : 'user', // Xác định quyền ở đây
+      isBlocked: false,
+      bookmarks: [],
+      school: 'THPT Thái Hòa'
+    };
+
+    // 2. Kích hoạt React Re-render
+    setUser(userData); 
+
+    // 3. Chuyển trang ngay lập tức
+    if (userData.role === 'admin') {
+      console.log("Quyền Admin xác thực thành công!");
+      setView('admin'); // Ép view sang admin
+    } else {
       setView('home');
-    } catch (err: any) {
-      alert("Lỗi đăng nhập: " + (err.message.includes('auth/invalid-credential') 
-        ? "Sai tài khoản hoặc mật khẩu!" 
-        : "Không thể kết nối máy chủ."));
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (err: any) {
+    console.error("Lỗi đăng nhập:", err);
+    alert("Sai tài khoản hoặc mật khẩu QTV!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Xử lý Lưu/Bỏ lưu tài liệu (Bookmark)
   const handleBookmark = async (docId: string) => {
