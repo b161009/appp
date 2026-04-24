@@ -1,354 +1,328 @@
-// Giao diện thư viện tài liệu cho phép lọc, tải lên và xóa tài liệu
-import React, { useState } from 'react';
-import { Upload, FileCheck, Bookmark } from 'lucide-react';
+// VaultView.tsx - Phần 1: Khởi tạo và Bộ lọc
+import React, { useState, useMemo } from 'react';
+import { 
+  Upload, 
+  FileCheck, 
+  Bookmark, 
+  Search, 
+  Filter, 
+  Trash2, 
+  Eye, 
+  Download,
+  ChevronDown,
+  Info
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { User, Document } from '../types';
 import { SUBJECTS, GRADES, EXAM_TYPES } from '../constants';
-
-// Vì tôi đang sử dụng các thành phần chung từ App.tsx, tôi sẽ định nghĩa lại hoặc truyền chúng qua props.
-// Để đơn giản, hiện tại tôi sẽ sử dụng các thành phần UI chung từ file riêng.
-// Tốt hơn là nên đặt các thành phần giao diện chung vào một thư viện riêng.
-
 import { Button, Card, Badge } from './UI';
+import { cn } from '../lib/utils';
 
 interface VaultViewProps {
   user: User | null;
-  isContributing: boolean;
-  setIsContributing: (v: boolean) => void;
-  handleClearAllDocuments: () => void;
-  setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
-  loading: boolean;
-  setLoading: (v: boolean) => void;
-  vaultFilter: any;
-  setVaultFilter: (v: any) => void;
-  filteredDocs: Document[];
-  userUploadedDocs: Document[];
-  pendingDocs: Document[];
-  handleDeleteDocument: (id: string) => void;
-  users: User[];
+  documents: Document[];
+  filter: {
+    grade: string;
+    subject: string;
+    type: string;
+    search: string;
+  };
+  setFilter: (v: any) => void;
   handleBookmark: (docId: string) => void;
+  setView: (v: any) => void;
+  handleDeleteDocument?: (id: string) => void;
 }
 
 const VaultView: React.FC<VaultViewProps> = ({
   user,
-  isContributing,
-  setIsContributing,
-  handleClearAllDocuments,
-  setDocuments,
-  loading,
-  setLoading,
-  vaultFilter,
-  setVaultFilter,
-  filteredDocs,
-  userUploadedDocs,
-  pendingDocs,
-  handleDeleteDocument,
-  users,
-  handleBookmark
+  documents,
+  filter,
+  setFilter,
+  handleBookmark,
+  setView,
+  handleDeleteDocument
 }) => {
-  const [studentFileName, setStudentFileName] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'library' | 'uploaded' | 'pending'>('library');
+  const [activeTab, setActiveTab] = useState<'all' | 'bookmarks'>('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
 
-  const tabDocs = activeTab === 'uploaded' ? userUploadedDocs : activeTab === 'pending' ? pendingDocs : filteredDocs;
-  const tableTitle = activeTab === 'uploaded'
-    ? 'Tài liệu đã tải lên'
-    : activeTab === 'pending'
-      ? 'Tài liệu chờ duyệt'
-      : 'Tài liệu thư viện';
+  // Logic lọc tài liệu mạnh mẽ
+  const filteredDocs = useMemo(() => {
+    return documents.filter(doc => {
+      // Chỉ hiện tài liệu đã duyệt, trừ khi là Admin hoặc chính chủ đang xem bài của mình
+      const isAuthorized = doc.status === 'approved' || doc.authorId === user?.id || user?.role === 'admin';
+      if (!isAuthorized) return false;
+      
+      const matchSearch = doc.title.toLowerCase().includes(filter.search.toLowerCase());
+      const matchGrade = filter.grade === 'All' || doc.grade === filter.grade;
+      const matchSubject = filter.subject === 'All' || doc.subject === filter.subject;
+      const matchType = filter.type === 'All' || doc.type === filter.type;
+      
+      let matchTab = true;
+      if (activeTab === 'bookmarks') {
+        matchTab = user?.bookmarks?.includes(doc.id) || false;
+      }
+
+      return matchSearch && matchGrade && matchSubject && matchType && matchTab;
+    });
+  }, [documents, filter, activeTab, user]);
 
   return (
-    <div className="p-5 flex flex-col h-full gap-4 overflow-hidden">
-      <div className="flex justify-between items-center text-sidebar">
-        <h2 className="text-xl font-black uppercase tracking-widest">THƯ VIỆN SCHOLA VAULT</h2>
-        <div className="flex gap-2">
-           {user?.role === 'user' && (
-             <Button 
-               variant={isContributing ? 'secondary' : 'primary'} 
-               className="h-9 px-4 rounded font-bold uppercase text-[10px] tracking-widest"
-               onClick={() => setIsContributing(!isContributing)}
-             >
-               {isContributing ? 'HỦY ĐÓNG GÓP' : '+ ĐÓNG GÓP TÀI LIỆU'}
-             </Button>
-           )}
-           {user?.role === 'admin' && (
-             <Button variant="danger" className="h-9 px-4 rounded font-bold uppercase text-[10px] tracking-widest" onClick={handleClearAllDocuments}>
-               XÓA TẤT CẢ TÀI LIỆU
-             </Button>
-           )}
+    <div className="p-6 flex flex-col h-full gap-6 overflow-hidden bg-[#F8FAFC]">
+      {/* TIÊU ĐỀ VÀ NÚT TẢI LÊN */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-sidebar flex items-center gap-3">
+            <div className="w-2 h-8 bg-accent rounded-full" />
+            Thư viện tài liệu
+          </h2>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 ml-5">
+            Khám phá {filteredDocs.length} tài liệu học tập chất lượng
+          </p>
+        </div>
+        
+        <div className="flex gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="border-slate-200 text-slate-600 font-black text-[10px] uppercase px-4"
+          >
+            <Filter className="w-3.5 h-3.5 mr-2" />
+            {isFilterOpen ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+          </Button>
+          <Button 
+            onClick={() => setView('upload')}
+            className="bg-accent hover:bg-accent/90 text-white font-black py-6 px-8 rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-95 text-[11px] uppercase tracking-widest"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Đóng góp tài liệu
+          </Button>
         </div>
       </div>
 
+      {/* THANH BỘ LỌC (FILTER BAR) */}
       <AnimatePresence>
-        {isContributing && user?.role === 'user' && (
+        {isFilterOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <Card title="Học sinh đóng góp tài liệu" className="shadow-md mb-4 border-accent/20">
-               <form 
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const formData = new FormData(form);
-                  formData.append('authorId', user?.id || '');
+            <Card className="p-5 border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Tìm kiếm */}
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-accent transition-colors" />
+                  <input 
+                    className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-accent/10 focus:bg-white transition-all"
+                    placeholder="Tên tài liệu, từ khóa..."
+                    value={filter.search}
+                    onChange={(e) => setFilter({...filter, search: e.target.value})}
+                  />
+                </div>
+                
+                {/* Môn học */}
+                <div className="relative">
+                  <select 
+                    className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
+                    value={filter.subject}
+                    onChange={(e) => setFilter({...filter, subject: e.target.value})}
+                  >
+                    <option value="All">Tất cả môn học</option>
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                </div>
 
-                  setLoading(true);
-                  try {
-                    const res = await fetch('/api/documents', {
-                      method: 'POST',
-                      body: formData
-                    });
-                    if (res.ok) {
-                      const newDoc = await res.json();
-                      setDocuments(prev => [newDoc, ...prev]);
-                      setIsContributing(false);
-                      setStudentFileName(null);
-                      alert('Cảm ơn bạn đã đóng góp cho thư viện!');
-                    } else {
-                      const error = await res.json();
-                      alert(error.error || 'Lỗi khi gửi đóng góp');
-                    }
-                  } catch (e) {
-                    console.error(e);
-                    alert('Lỗi khi gửi đóng góp');
-                  } finally {
-                    setLoading(false);
-                  }
-                }} 
-                className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
-               >
-                  <div className="md:col-span-2 space-y-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1">Tên tài liệu</label>
-                     <input name="title" required placeholder="Tên đề thi, tài liệu..." className="w-full h-9 bg-slate-50 border border-border-theme rounded px-3 text-xs focus:ring-1 focus:ring-accent outline-none" />
-                  </div>
-                  <div className="space-y-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1">Môn</label>
-                     <select name="subject" required className="w-full h-9 bg-slate-50 border border-border-theme rounded px-2 text-xs outline-none">
-                        {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                     </select>
-                  </div>
-                  <div className="space-y-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1">Khối</label>
-                     <select name="grade" required className="w-full h-9 bg-slate-50 border border-border-theme rounded px-2 text-xs outline-none">
-                        {GRADES.map(g => <option key={g} value={g}>Lớp {g}</option>)}
-                     </select>
-                  </div>
-                  <div className="space-y-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1">Phân loại</label>
-                     <select name="type" required className="w-full h-9 bg-slate-50 border border-border-theme rounded px-2 text-xs outline-none">
-                        {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                     </select>
-                  </div>
-                  <div className="space-y-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1">Năm</label>
-                     <input name="year" required placeholder="2025" className="w-full h-9 bg-slate-50 border border-border-theme rounded px-3 text-xs outline-none" />
-                  </div>
-                  <div className="md:col-span-1">
-                     <label className="text-[9px] font-black uppercase opacity-40 px-1 block mb-1">Đính kèm</label>
-                     <input 
-                      type="file" 
-                      name="file" 
-                      className="hidden" 
-                      id="student-file-upload" 
-                      onChange={(e) => setStudentFileName(e.target.files?.[0]?.name || null)}
-                    />
-                     <label htmlFor="student-file-upload" className={`flex items-center justify-center gap-2 h-9 w-full border border-dashed rounded text-[10px] cursor-pointer transition-colors ${studentFileName ? 'bg-success/5 border-success text-success' : 'bg-slate-50 border-border-theme opacity-60 hover:bg-slate-100'}`}>
-                        {studentFileName ? (
-                          <><FileCheck className="w-3 h-3" /> {studentFileName}</>
-                        ) : (
-                          <><Upload className="w-3 h-3" /> TẢI LÊN</>
-                        )}
-                     </label>
-                  </div>
-                  <Button type="submit" className="h-9 w-full uppercase text-[10px] tracking-widest font-black" disabled={loading}>GỬI ĐÓNG GÓP</Button>
-               </form>
+                {/* Khối lớp */}
+                <div className="relative">
+                  <select 
+                    className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
+                    value={filter.grade}
+                    onChange={(e) => setFilter({...filter, grade: e.target.value})}
+                  >
+                    <option value="All">Tất cả khối</option>
+                    {GRADES.map(g => <option key={g} value={g}>Lớp {g}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Loại đề */}
+                <div className="relative">
+                  <select 
+                    className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
+                    value={filter.type}
+                    onChange={(e) => setFilter({...filter, type: e.target.value})}
+                  >
+                    <option value="All">Tất cả loại đề</option>
+                    {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
+      // VaultView.tsx - Phần 2: Danh sách tài liệu & Footer
+      {/* BẢNG DANH SÁCH TÀI LIỆU */}
+      <Card className="flex-1 overflow-hidden border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl flex flex-col">
+        <div className="flex-1 overflow-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
+              <tr className="border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                <th className="p-5">Tài liệu học tập</th>
+                <th className="p-5">Môn học</th>
+                <th className="p-5">Khối</th>
+                <th className="p-5">Loại đề</th>
+                <th className="p-5">Năm học</th>
+                <th className="p-5 text-right">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredDocs.map((doc) => {
+                const isBookmarked = user?.bookmarks?.includes(doc.id);
+                
+                return (
+                  <tr key={doc.id} className="hover:bg-slate-50/80 transition-all group">
+                    <td className="p-5">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm group-hover:scale-110",
+                          doc.type.includes("Ôn tập") ? "bg-emerald-50 text-emerald-500" : "bg-blue-50 text-blue-500"
+                        )}>
+                          <FileCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-[13px] font-black text-slate-700 uppercase leading-tight group-hover:text-accent transition-colors">
+                            {doc.title}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex items-center gap-2 mt-1.5">
+  <span className="inline-flex items-center justify-center text-[9px] py-0 px-1.5 h-4 border border-slate-200 text-slate-400 font-bold rounded uppercase tracking-tighter bg-transparent">
+    {doc.id.slice(0, 8).toUpperCase()}
+  </span>
+  
+  {doc.status === 'pending' && (
+    <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">
+      Đang chờ duyệt
+    </span>
+  )}
+</div>
+                            {doc.status === 'pending' && (
+                              <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Đang chờ duyệt</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="p-5">
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black text-slate-600 uppercase">{doc.subject}</span>
+                        <span className="text-[9px] text-slate-400 font-bold">{doc.school || 'THPT Thái Hòa'}</span>
+                      </div>
+                    </td>
 
-      <Card title="Bộ lọc tài liệu thư viện" className="shadow-none">
-        <div className="p-3 flex flex-wrap gap-3 items-end">
-          <div className="flex flex-col gap-1">
-             <label className="text-[10px] font-black uppercase opacity-40 px-1">Khối lớp</label>
-             <select 
-                className="bg-white border border-border-theme rounded px-2 h-9 text-xs focus:ring-1 focus:ring-accent outline-none w-32"
-                value={vaultFilter.grade}
-                onChange={(e) => setVaultFilter({...vaultFilter, grade: e.target.value})}
-              >
-                <option value="All">Tất cả</option>
-                {GRADES.map(g => <option key={g} value={g}>Lớp {g}</option>)}
-              </select>
-          </div>
-          <div className="flex flex-col gap-1">
-             <label className="text-[10px] font-black uppercase opacity-40 px-1">Môn học</label>
-             <select 
-                className="bg-white border border-border-theme rounded px-2 h-9 text-xs focus:ring-1 focus:ring-accent outline-none w-40"
-                value={vaultFilter.subject}
-                onChange={(e) => setVaultFilter({...vaultFilter, subject: e.target.value})}
-              >
-                <option value="All">Tất cả</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-          </div>
-          <div className="flex flex-col gap-1">
-             <label className="text-[10px] font-black uppercase opacity-40 px-1">Năm học</label>
-             <select 
-                className="bg-white border border-border-theme rounded px-2 h-9 text-xs focus:ring-1 focus:ring-accent outline-none w-24"
-                value={vaultFilter.year}
-                onChange={(e) => setVaultFilter({...vaultFilter, year: e.target.value})}
-              >
-                <option value="All">Tất cả</option>
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-              </select>
-          </div>
-          <Button variant="secondary" className="h-9 rounded px-5 font-bold uppercase tracking-widest text-[11px]" onClick={() => setVaultFilter({ grade: 'All', subject: 'All', type: 'All', year: 'All', search: '' })}>
-            Làm mới bộ lọc
-          </Button>
+                    <td className="p-5">
+                      <span className="inline-flex items-center justify-center px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 group-hover:bg-accent group-hover:text-white transition-colors">
+                        LỚP {doc.grade}
+                      </span>
+                    </td>
+
+                    <td className="p-5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold text-accent uppercase tracking-tighter">{doc.type}</span>
+                        <div className="flex gap-1">
+                           {[1,2,3,4,5].map(star => <star key={star} className="w-2 h-2 text-amber-400 fill-current" />)}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="p-5">
+                      <span className="text-[11px] font-mono font-bold text-slate-400 italic tracking-tighter">
+                        {doc.year || '2023-2024'}
+                      </span>
+                    </td>
+
+                    <td className="p-5">
+                      <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleBookmark(doc.id)}
+                          className={cn(
+                            "p-2.5 rounded-xl transition-all active:scale-90 shadow-sm",
+                            isBookmarked 
+                              ? "bg-amber-500 text-white shadow-amber-200" 
+                              : "bg-white text-slate-300 border border-slate-100 hover:text-amber-500 hover:border-amber-200"
+                          )}
+                          title={isBookmarked ? "Bỏ lưu" : "Lưu tài liệu"}
+                        >
+                          <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current")} />
+                        </button>
+
+                        <button 
+                          className="p-2.5 bg-white text-slate-300 border border-slate-100 rounded-xl hover:text-accent hover:border-accent/30 hover:bg-accent/5 transition-all shadow-sm active:scale-90"
+                          title="Tải xuống"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+
+                        {/* Nếu là Admin hoặc chủ bài đăng mới hiện nút Xóa */}
+                        {(user?.role === 'admin' || user?.id === doc.authorId) && handleDeleteDocument && (
+                          <button 
+                            onClick={() => {
+                              if(window.confirm('Bạn có chắc chắn muốn xóa vĩnh viễn tài liệu này?')) {
+                                handleDeleteDocument(doc.id);
+                              }
+                            }}
+                            className="p-2.5 bg-white text-slate-300 border border-slate-100 rounded-xl hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm active:scale-90"
+                            title="Xóa tài liệu"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          
+          {/* TRẠNG THÁI TRỐNG (EMPTY STATE) */}
+          {filteredDocs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-32 space-y-4">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
+                <Search className="w-8 h-8 text-slate-200" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest">Không tìm thấy kết quả</h3>
+                <p className="text-[10px] font-bold text-slate-300 mt-1 uppercase">Vui lòng thử bộ lọc khác hoặc từ khóa khác</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* FOOTER BẢNG (INFO BAR) */}
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-6">
+           <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <Info className="w-3.5 h-3.5" />
+              Tài liệu được bảo mật bởi CLB Tin Học THPT Thái Hòa
+           </div>
+           <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-blue-500" />
+                 <span className="text-[9px] font-black text-slate-500 uppercase">Tài liệu mới</span>
+              </div>
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                 <span className="text-[9px] font-black text-slate-500 uppercase">Ôn tập / Đề thi</span>
+              </div>
+           </div>
         </div>
       </Card>
-      <div className="flex items-center gap-2">
-        <Button
-          variant={activeTab === 'library' ? 'primary' : 'ghost'}
-          className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-          onClick={() => setActiveTab('library')}
-        >
-          Thư viện
-        </Button>
-        {user?.role === 'user' && (
-          <Button
-            variant={activeTab === 'uploaded' ? 'primary' : 'ghost'}
-            className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-            onClick={() => setActiveTab('uploaded')}
-          >
-            Tài liệu đã tải lên
-          </Button>
-        )}
-        {user?.role === 'admin' && (
-          <Button
-            variant={activeTab === 'pending' ? 'primary' : 'ghost'}
-            className="h-8 px-3 rounded font-bold uppercase text-[10px] tracking-widest"
-            onClick={() => setActiveTab('pending')}
-          >
-            Tài liệu chờ duyệt
-          </Button>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-auto bg-white border border-border-theme rounded-lg shadow-sm">
-        <table className="w-full text-xs text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-border-theme text-slate-500 font-black uppercase tracking-widest text-[10px]">
-              <th className="p-3">{tableTitle}</th>
-              <th className="p-3 text-center">Khối</th>
-              <th className="p-3">Môn học</th>
-              <th className="p-3">Phân loại</th>
-              <th className="p-3 text-center">Năm học</th>
-              <th className="p-3 text-center">Người đăng</th>
-              <th className="p-3 text-center">Lượt xem</th>
-              <th className="p-3 text-center">Lưu</th>
-              <th className="p-3 text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tabDocs.map(doc => {
-              const author = users.find(u => u.id === doc.authorId);
-              const isBookmarked = user?.bookmarks?.includes(doc.id);
-              const isImage = doc.fileType?.startsWith('image/');
-              return (
-                <tr 
-                  key={doc.id} 
-                  className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${isImage ? 'cursor-pointer' : ''}`}
-                  onClick={() => {
-                    if (isImage && doc.fileContent) {
-                      setSelectedImage(doc.fileContent);
-                    }
-                  }}
-                >
-                  <td className="p-3 font-bold text-slate-800 flex items-center gap-2">
-                    {doc.title}
-                    {doc.status === 'pending' && <Badge className="bg-yellow-50 text-yellow-600 border border-yellow-100 text-[8px]">CHỜ DUYỆT</Badge>}
-                    {doc.status === 'approved' && <Badge className="bg-green-50 text-green-600 border border-green-100 text-[8px]">ĐÃ DUYỆT</Badge>}
-                    {doc.status === 'rejected' && <Badge className="bg-red-50 text-red-600 border border-red-100 text-[8px]">TỪ CHỐI</Badge>}
-                  </td>
-                  <td className="p-3 text-center"><Badge className="bg-blue-50 text-blue-600 border border-blue-100">{doc.grade}</Badge></td>
-                  <td className="p-3">{doc.subject}</td>
-                  <td className="p-3"><Badge className="bg-slate-100 text-slate-600">{doc.type}</Badge></td>
-                  <td className="p-3 font-mono opacity-50 text-center">{doc.year}</td>
-                  <td className="p-3 text-center font-bold text-slate-600">{author?.username || 'Admin'}</td>
-                  <td className="p-3 text-center font-mono text-slate-500">{doc.viewCount || 0}</td>
-                  <td className="p-3 text-center">
-                    <Bookmark 
-                      className={`w-4 h-4 cursor-pointer ${isBookmarked ? 'fill-yellow-400 text-yellow-400' : 'text-slate-400 hover:text-yellow-400'}`}
-                      onClick={() => handleBookmark(doc.id)}
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    {doc.fileContent ? (
-                      <a 
-                        href={doc.fileContent} 
-                        download={doc.title}
-                        className="text-accent cursor-pointer font-black hover:underline uppercase text-[10px] tracking-tight mr-3"
-                        onClick={async () => {
-                          // Tăng viewCount khi tải
-                          await fetch(`/api/documents/${doc.id}/view`, { method: 'POST' });
-                        }}
-                      >
-                        Tải về máy
-                      </a>
-                    ) : (
-                      <span className="text-slate-300 cursor-not-allowed font-black uppercase text-[10px] tracking-tight mr-3">Không có file</span>
-                    )}
-                    {(user?.role === 'admin' || user?.id === doc.authorId) && (
-                      <span 
-                        className="text-warning cursor-pointer font-black hover:underline uppercase text-[10px] tracking-tight"
-                        onClick={() => handleDeleteDocument(doc.id)}
-                      >
-                        Xóa
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {tabDocs.length === 0 && (
-              <tr>
-                <td colSpan={9} className="p-10 text-center text-slate-400 font-bold uppercase text-[11px] tracking-widest">
-                  Không tìm thấy tài liệu phù hợp
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Image Viewing Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-4xl max-h-screen p-4">
-            <img 
-              src={selectedImage} 
-              alt="Document preview" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button 
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
-              onClick={() => setSelectedImage(null)}
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default VaultView;
+export default VaultView; 

@@ -1,7 +1,7 @@
 // Các thành phần giao diện tái sử dụng chung như Button, Card, Badge
 import React from 'react';
 import { cn } from '../lib/utils';
-
+// UI.tsx
 export const Button = ({ className, variant = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'success' }) => {
   const variants = {
     primary: 'bg-accent text-white hover:opacity-90',
@@ -29,9 +29,12 @@ export const Card = ({ children, className, title, extra, ...props }: React.HTML
     {children}
   </div>
 );
-
-export const Badge = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <span className={cn('px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider', className)}>
+export const Badge = ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => (
+  <span 
+    className={cn('px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider inline-flex items-center justify-center', className)} 
+    {...props}
+  >
     {children}
   </span>
 );
+;

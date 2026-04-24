@@ -4,7 +4,8 @@ import { MessageSquare, ChevronRight, ShieldCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { User, Message } from '../types';
 import { Button, Badge } from './UI';
-
+import { db } from '../firebase'; 
+import { collection, onSnapshot } from 'firebase/firestore';
 interface SupportViewProps {
   user: User | null;
   onlineUsers: Record<string, boolean>;
@@ -60,11 +61,16 @@ const SupportView: React.FC<SupportViewProps> = ({
   };
 
   useEffect(() => {
-    const chatContainer = document.getElementById('support-chat-history');
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }, [chatMessages]);
+  if (!user || user.role !== 'admin') return;
+  
+  // Thay vì fetch, dùng onSnapshot để lấy data realtime
+  const unsub = onSnapshot(collection(db, "support_conversations"), (snap) => {
+    const convs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setSupportConversations(convs);
+  });
+  
+  return () => unsub();
+}, [user]);
 
   return (
     <div className="flex-1 flex overflow-hidden h-full">

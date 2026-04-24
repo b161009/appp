@@ -4,6 +4,8 @@ import { Upload, Trash2, ShieldCheck, Heart, Star } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { User, Review } from '../types';
 import { Button, Card, Badge } from './UI';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface FeedbackPanelProps {
   user: User | null;
@@ -30,36 +32,29 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
   const [comment, setComment] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !comment.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.username,
-          rating,
-          comment,
-          type: 'rating'
-        })
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!user || !comment.trim()) return;
+  setIsSubmitting(true);
+   try {
+      await addDoc(collection(db, "reviews"), {
+        userId: user.username,
+        rating,
+        comment,
+        type: 'rating',
+        createdAt: serverTimestamp(),
+        likedBy: []
       });
-      if (res.ok) {
-        const newReview = await res.json();
-        setReviews(prev => [newReview, ...prev]);
-        setComment('');
-        setRating(5);
-        alert('Cảm ơn bạn đã gửi đánh giá!');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSubmitting(false);
+      setComment('');
+      setRating(5);
+      alert('Cảm ơn bạn đã gửi đánh giá!');
     }
-  };
-
+    catch (e) {
+    console.error("Lỗi gửi feedback:", e);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   return (
     <div className="p-5 flex-1 overflow-auto bg-slate-50/50">
       <Card title="Trung tâm phản hồi & Đóng góp hệ thống" className="shadow-none mb-6">
