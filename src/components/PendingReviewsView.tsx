@@ -38,30 +38,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
     });
   }, [pendingDocuments, filter]);
 
-  const handleReview = async (docId: string, status: 'approved' | 'rejected', reviewNote?: string) => {
-    if (!user) return;
 
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/admin/documents/${docId}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, reviewNote, adminId: user.id })
-      });
-
-      if (response.ok) {
-        // Reload page to refresh data
-        window.location.reload();
-      } else {
-        alert('Lỗi khi xét duyệt tài liệu');
-      }
-    } catch (error) {
-      console.error('Review error:', error);
-      alert('Lỗi kết nối máy chủ');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getAuthorName = (authorId: string) => {
     const author = users.find(u => u.id === authorId);
