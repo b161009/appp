@@ -409,7 +409,16 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
     try {
       await addDoc(collection(db, "documents"), newDoc);
-      alert("Tải lên thành công! Vui lòng chờ Admin phê duyệt.");
+     await addDoc(collection(db, "documents"), newDoc);
+
+// Thông báo tùy theo quyền hạn
+if (user.role === 'admin') {
+  alert(" Quốc Bảo đẹp trai quá nên bài viết tự động được duyệt! ");
+} else {
+  alert("✅ Tải lên thành công! Tài liệu của bạn sẽ được xét duyệt trong thời gian sớm nhất.");
+}
+
+setView('home'); // Quay về trang chủ
       setImagePreview(null);
       setView('vault');
     } catch (err) {
