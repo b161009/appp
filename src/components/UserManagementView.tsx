@@ -62,8 +62,14 @@ const UserManagementView: React.FC<UserManagementProps> = ({ currentUser, users 
         {displayedUsers.map((u) => (
           <div key={u.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
             <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] ${u.role === 'admin' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
-                {u.username.slice(0, 2).toUpperCase()}
+              <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-black text-[10px] ${u.role === 'admin' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                {u.avatar ? (
+                  <img src={u.avatar} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    {u.username.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-800 flex items-center gap-2">

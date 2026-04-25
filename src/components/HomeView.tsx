@@ -134,8 +134,14 @@ const HomeView: React.FC<HomeViewProps> = ({
                     className="bg-white p-3 rounded-xl border border-border-theme flex items-center justify-between hover:border-accent transition-colors cursor-pointer shadow-sm active:scale-95"
                    >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-accent/10 flex items-center justify-center text-accent text-[9px] font-black">
-                          {f.username.slice(0, 2).toUpperCase()}
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-black">
+                          {f.avatar ? (
+                            <img src={f.avatar} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-accent/10 flex items-center justify-center text-accent">
+                              {f.username.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <div className="text-xs font-bold text-slate-700">{f.username}</div>
                       </div>

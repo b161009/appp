@@ -124,8 +124,14 @@ const SupportView: React.FC<SupportViewProps> = ({
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="p-4 bg-white border-b border-border-theme flex items-center justify-between z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded bg-sidebar flex items-center justify-center text-white font-black uppercase text-xs shadow-md">
-                  {selectedUser.username.slice(0, 2)}
+                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-white font-black uppercase text-xs shadow-md">
+                  {selectedUser.avatar ? (
+                    <img src={selectedUser.avatar} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-sidebar flex items-center justify-center">
+                      {selectedUser.username.slice(0, 2)}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-widest">{selectedUser.username}</div>

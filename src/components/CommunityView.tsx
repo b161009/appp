@@ -77,8 +77,14 @@ const CommunityView: React.FC<CommunityViewProps> = ({
           <input type="hidden" name="isAnonymous" value={String(isAnonymous)} />
 
           <div className="flex gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-accent/5 flex items-center justify-center font-black text-accent border border-accent/10 shadow-inner">
-              {isAnonymous ? "AD" : user?.username.slice(0, 2).toUpperCase()}
+            <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center font-black border border-slate-200 shadow-inner">
+              {user?.avatar ? (
+                <img src={user.avatar} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-accent/5 flex items-center justify-center text-accent">
+                  {isAnonymous ? "AD" : user?.username?.slice(0, 2).toUpperCase()}
+                </div>
+              )}
             </div>
             <textarea 
               name="content"
@@ -158,9 +164,15 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                     <div className="p-5 flex justify-between items-start">
                       <div className="flex gap-4">
                         <div className="relative">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center font-black text-slate-500 border border-slate-200 shadow-sm">
-                            {postAuthor?.username?.slice(0, 2).toUpperCase() || 'HS'}
-                          </div>
+                          {postAuthor?.avatar ? (
+                            <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+                              <img src={postAuthor.avatar} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center font-black text-slate-500 border border-slate-200 shadow-sm">
+                              {postAuthor?.username?.slice(0, 2).toUpperCase() || 'HS'}
+                            </div>
+                          )}
                           {onlineUsers[post.authorId] && (
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-[3px] border-white rounded-full shadow-sm" />
                           )}

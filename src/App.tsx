@@ -723,8 +723,12 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
 </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs">
-                {user.username.slice(0, 2).toUpperCase()}
+              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs overflow-hidden">
+                {user.avatar ? (
+                  <img src={user.avatar} className="w-full h-full object-cover" />
+                ) : (
+                  user.username.slice(0, 2).toUpperCase()
+                )}
               </div>
             </div>
           </header>
