@@ -73,6 +73,7 @@ export default function App() {
   const [modalDocId, setModalDocId] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [avatarInputRef, setAvatarInputRef] = useState<HTMLInputElement | null>(null);
 
   // --- 2. HÀM LOGIN (Đặt sau khi đã có các State ở trên) ---
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -239,6 +240,8 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
   reader.readAsDataURL(file);
+  // Reset input để có thể chọn lại cùng file
+  e.target.value = '';
 };
 
   const handleBookmark = async (docId: string) => {
