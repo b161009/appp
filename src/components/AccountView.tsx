@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pencil, Lock, LogOut, Save, X } from 'lucide-react';
+import { Pencil, Lock, LogOut, Save, X, Upload } from 'lucide-react';
 import type { User, Report } from '../types';
 import { Button, Card } from './UI';
 import { useEffect } from 'react';
@@ -17,6 +17,7 @@ interface AccountViewProps {
   setLoading: (v: boolean) => void;
   reports: Report[];
   handleAppealReport: (id: string) => void;
+  onUpdateAvatar: (uid: string, url: string) => Promise<void>;
 }
 
 const AccountView: React.FC<AccountViewProps> = ({
@@ -26,7 +27,9 @@ const AccountView: React.FC<AccountViewProps> = ({
   loading,
   setLoading,
   reports,
-  handleAppealReport
+  handleAppealReport,
+  onUpdateAvatar
+  
 }) => {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -84,7 +87,6 @@ const handleUpdateProfile = async () => {
   }
 }
 
-
 // 🔐 ĐỔI MẬT KHẨU (FIREBASE REAL)
 const handleChangePassword = async () => {
 
@@ -133,6 +135,20 @@ const handleChangePassword = async () => {
     setLoading(false)
   }
 }
+const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      // Gọi hàm onUpdateAvatar được truyền từ App.tsx xuống
+      if (onUpdateAvatar) {
+        await onUpdateAvatar(user?.id || '', base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 return (
   <div className="p-5 flex flex-col gap-5 h-full overflow-auto">
     <h2 className="text-2xl font-black uppercase tracking-[0.35em] text-sidebar mb-2">
@@ -146,9 +162,33 @@ return (
         <div className="p-6 space-y-6">
 
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-sidebar text-white text-4xl font-black flex items-center justify-center">
-              {user.username.slice(0, 2).toUpperCase()}
-            </div>
+            <div className="relative group">
+  {/* Vòng tròn hiển thị Avatar */}
+  <div className="w-20 h-20 rounded-full overflow-hidden bg-sidebar text-white text-3xl font-black flex items-center justify-center border-2 border-slate-100 shadow-md">
+    {user?.avatar ? (
+      <img 
+        src={user.avatar} 
+        className="w-full h-full object-cover" 
+        alt="Avatar" 
+      />
+    ) : (
+      // Nếu không có ảnh thì hiện 2 chữ cái đầu của tên
+      <span>{user?.username?.slice(0, 2).toUpperCase()}</span>
+    )}
+  </div>
+
+  {/* Nút "Đổi ảnh" hiện lên khi di chuột vào (Hover) */}
+  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
+    <Upload className="w-5 h-5 mb-1" />
+    <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
+    <input 
+      type="file" 
+      className="hidden" 
+      accept="image/*" 
+      onChange={onFileChange} // Hàm này ní đã viết ở turn trước
+    />
+  </label>
+</div>
 
             <div>
               <div className="text-lg font-bold">{user.username}</div>

@@ -206,7 +206,40 @@ useEffect(() => {
     setView('login');
   };
 
+const handleUpdateAvatar = async (userId: string, newAvatarUrl: string) => {
+  try {
+    const userRef = fDoc(db, "users", userId);
+    await updateDoc(userRef, {
+      avatar: newAvatarUrl
+    });
+    // Nếu là chính mình đang đổi thì cập nhật state để hiển thị ngay
+    if (user && user.id === userId) {
+      setUser({ ...user, avatar: newAvatarUrl });
+    }
+    alert("Cập nhật ảnh đại diện thành công!");
+  } catch (error) {
+    console.error("Lỗi cập nhật avatar:", error);
+    alert("Không thể cập nhật ảnh.");
+  }
+};
 
+// --- HÀM XỬ LÝ ĐỔI ẢNH ĐẠI DIỆN TỪ HEADER ---
+const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onloadend = async () => {
+    const base64String = reader.result as string;
+    if (user) {
+      await handleUpdateAvatar(user.id, base64String);
+    }
+  };
+  reader.readAsDataURL(file);
+};
 
   const handleBookmark = async (docId: string) => {
     if (!user) return;
@@ -559,6 +592,7 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             handleLogout={handleLogout}
             reports={reports}
             handleAppealReport={() => {}}
+            onUpdateAvatar={handleUpdateAvatar}
           />
         );
 
@@ -668,11 +702,24 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
               />
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end">
-                <span className="text-[11px] font-black text-slate-700 uppercase">{user.username}</span>
-                <span className="text-[9px] font-bold text-accent uppercase tracking-tighter">{user.role}</span>
-              </div>
+            <div className="relative group">
+  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg bg-sidebar text-white flex items-center justify-center">
+    {user.avatar ? (
+      <img src={user.avatar} className="w-full h-full object-cover" />
+    ) : (
+      <span className="text-3xl font-black">{user.username.slice(0, 2).toUpperCase()}</span>
+    )}
+  </div>
+  
+  {/* Nút upload hiện ra khi di chuột vào avatar */}
+  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
+    <Upload className="w-5 h-5 mb-1" />
+    <span className="text-[8px] font-bold uppercase">Đổi ảnh</span>
+    <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+  </label>
+</div>
+
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs">
                 {user.username.slice(0, 2).toUpperCase()}
               </div>
