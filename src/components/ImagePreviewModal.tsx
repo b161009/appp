@@ -1,7 +1,6 @@
-// ImagePreviewModal.tsx - Popup hiển thị ảnh đề thi với nút báo cáo và đáp án
-import React, { useState } from 'react';
-import { X, Flag, Eye, EyeOff, Download, Share2 } from 'lucide-react';
-import { Button } from './UI';
+// ImagePreviewModal.tsx - Popup xem ảnh đề thi với báo cáo và đáp án
+import React, { useState, useEffect } from 'react';
+import { X, Flag, Eye, EyeOff, Download, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 interface ImagePreviewModalProps {
   isOpen: boolean;
@@ -9,7 +8,7 @@ interface ImagePreviewModalProps {
   imageUrl: string | null;
   title: string;
   docId?: string;
-  onReport?: (docId: string) => void;
+  onReport?: (docId: string, reason: string) => void;
 }
 
 const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
@@ -23,155 +22,246 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   const [showAnswer, setShowAnswer] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [showReportForm, setShowReportForm] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
 
-  if (!isOpen || !imageUrl) return null;
+  // Reset state khi mở modal mới
+  useEffect(() => {
+    if (isOpen) {
+      setShowAnswer(false);
+      setShowReportForm(false);
+      setReportReason('');
+      setZoom(1);
+      setRotation(0);
+    }
+  }, [isOpen, imageUrl]);
+
+  // Đóng bằng phím Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleReport = () => {
-    if (reportReason.trim() && onReport && docId) {
-      onReport(docId);
+    if (!reportReason.trim()) {
+      alert('Vui lòng chọn lý do báo cáo!');
+      return;
+    }
+    if (onReport && docId) {
+      onReport(docId, reportReason);
       setReportReason('');
       setShowReportForm(false);
-      alert("Đã gửi báo cáo thành công!");
+      alert('Đã gửi báo cáo thành công! Cảm ơn bạn.');
     }
   };
 
+  const handleDownload = () => {
+    if (!imageUrl) return;
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `TaiLieu_${title.replace(/\s+/g, '_')}.png`;
+    link.click();
+  };
+
+  if (!isOpen || !imageUrl) return null;
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="relative w-full max-w-5xl h-full flex flex-col bg-slate-900 rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center p-5 border-b border-white/10">
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
-            {docId && (
-              <p className="text-[10px] text-slate-400 mt-1">ID: {docId.slice(0, 8).toUpperCase()}</p>
-            )}
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        </div>
-
-        {/* Image Container */}
-        <div className="flex-1 relative bg-slate-950 overflow-hidden flex items-center justify-center p-4">
-          <img 
-            src={imageUrl}
-            alt={title}
-            className={`max-w-full max-h-full object-contain transition-all duration-700 ${
-              showAnswer ? 'blur-0 scale-100' : 'blur-3xl scale-110'
-            }`}
-          />
-          
-          {/* Blur Overlay when answer hidden */}
-          {!showAnswer && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="bg-white/10 backdrop-blur-xl p-10 rounded-[40px] border border-white/20 shadow-2xl text-center max-w-md">
-                <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <EyeOff className="w-8 h-8 text-accent" />
-                </div>
-                <p className="text-white text-xs font-black mb-6 uppercase tracking-[0.3em] opacity-80">
-                  Nội dung đã được bảo mật
-                </p>
-                <Button 
-                  className="bg-accent hover:bg-accent/80 text-white px-10 py-5 h-auto text-sm font-black rounded-full shadow-lg transition-transform active:scale-95"
-                  onClick={() => setShowAnswer(true)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  MỞ KHÓA XEM ĐÁP ÁN
-                </Button>
-              </div>
+    // Overlay - click ngoài để đóng
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="relative w-full max-w-5xl flex flex-col bg-[#0F172A] rounded-2xl border border-white/10 overflow-hidden shadow-2xl"
+        style={{ maxHeight: '95vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ===== HEADER ===== */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#1E293B] flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Eye className="w-4 h-4 text-blue-400" />
             </div>
-          )}
-        </div>
-
-        {/* Footer with buttons */}
-        <div className="p-5 border-t border-white/10 bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Left side - Report button */}
-            <div>
-              {showReportForm ? (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    className="h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-xs text-white"
-                  >
-                    <option value="">Chọn lý do...</option>
-                    <option value="noi-dung-sai">Nội dung không chính xác</option>
-                    <option value="vi-pham-ban-quyen">Vi phạm bản quyền</option>
-                    <option value="khong-phu-hop">Nội dung không phù hợp</option>
-                    <option value="khac">Lý do khác</option>
-                  </select>
-                  <Button
-                    variant="danger"
-                    className="h-10 px-4 rounded-lg font-black uppercase text-[10px]"
-                    onClick={handleReport}
-                    disabled={!reportReason}
-                  >
-                    Gửi
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="h-10 px-4 rounded-lg font-black uppercase text-[10px] text-white border-white/20"
-                    onClick={() => setShowReportForm(false)}
-                  >
-                    Hủy
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="secondary"
-                  className="h-10 px-5 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-600 text-slate-300 hover:bg-white/5"
-                  onClick={() => setShowReportForm(true)}
-                >
-                  <Flag className="w-4 h-4 mr-2" />
-                  Báo cáo
-                </Button>
+            <div className="min-w-0">
+              <h2 className="text-sm font-black uppercase tracking-widest text-white truncate">{title}</h2>
+              {docId && (
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  ID: {docId.slice(0, 12).toUpperCase()}
+                </p>
               )}
             </div>
+          </div>
 
-            {/* Right side - Action buttons */}
+          {/* Zoom & Rotation Controls */}
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              title="Thu nhỏ"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-[10px] font-black text-slate-400 w-10 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              title="Phóng to"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setRotation(r => (r + 90) % 360)}
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              title="Xoay ảnh"
+            >
+              <RotateCw className="w-4 h-4" />
+            </button>
+            <div className="w-px h-6 bg-white/10 mx-1" />
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white hover:bg-red-500/20 hover:text-red-400 rounded-lg transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* ===== ẢNH CHÍNH ===== */}
+        <div
+          className="flex-1 overflow-auto bg-[#0A0F1A] flex items-center justify-center relative"
+          style={{ minHeight: '300px', maxHeight: 'calc(95vh - 180px)' }}
+        >
+          {/* Lưới nền */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+              backgroundSize: '20px 20px'
+            }}
+          />
+
+          <div className="relative p-6 flex items-center justify-center w-full h-full overflow-auto">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="object-contain shadow-2xl rounded-lg transition-all duration-500"
+              style={{
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                filter: showAnswer ? 'none' : 'blur(20px)',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                transformOrigin: 'center center'
+              }}
+              draggable={false}
+            />
+
+            {/* Lớp mờ khi chưa xem đáp án */}
+            {!showAnswer && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-10 text-center max-w-sm shadow-2xl">
+                  <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                    <EyeOff className="w-8 h-8 text-blue-400" />
+                  </div>
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em] mb-2">
+                    Nội dung bảo mật
+                  </p>
+                  <p className="text-white/30 text-[9px] mb-6 font-medium">
+                    Nhấn để mở khóa xem toàn bộ nội dung đề thi
+                  </p>
+                  <button
+                    onClick={() => setShowAnswer(true)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center gap-2 mx-auto"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Mở khóa xem đề
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ===== FOOTER ACTIONS ===== */}
+        <div className="flex-shrink-0 bg-[#1E293B] border-t border-white/10 px-6 py-4">
+
+          {/* Form báo cáo (hiện khi nhấn báo cáo) */}
+          {showReportForm && (
+            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 flex-wrap">
+              <Flag className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="flex-1 h-9 bg-slate-800 border border-slate-600 rounded-lg px-3 text-xs text-white outline-none focus:border-red-400 min-w-[200px]"
+              >
+                <option value="">Chọn lý do báo cáo...</option>
+                <option value="noi-dung-sai">Nội dung không chính xác</option>
+                <option value="vi-pham-ban-quyen">Vi phạm bản quyền</option>
+                <option value="khong-phu-hop">Nội dung không phù hợp</option>
+                <option value="tai-lieu-loi">Tài liệu bị lỗi / không xem được</option>
+                <option value="khac">Lý do khác</option>
+              </select>
+              <button
+                onClick={handleReport}
+                disabled={!reportReason}
+                className="h-9 px-4 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+              >
+                Gửi báo cáo
+              </button>
+              <button
+                onClick={() => { setShowReportForm(false); setReportReason(''); }}
+                className="h-9 px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all"
+              >
+                Hủy
+              </button>
+            </div>
+          )}
+
+          {/* Hàng nút chính */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Trái: Báo cáo */}
+            <button
+              onClick={() => setShowReportForm(!showReportForm)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-95 ${
+                showReportForm
+                  ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                  : 'bg-transparent border-slate-600 text-slate-400 hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10'
+              }`}
+            >
+              <Flag className="w-3.5 h-3.5" />
+              Báo cáo
+            </button>
+
+            {/* Phải: Đáp án + Tải về */}
             <div className="flex items-center gap-3">
-              {/* Answer toggle button */}
-              <Button
-                variant="secondary"
-                className={`h-10 px-5 rounded-full font-black uppercase text-[10px] tracking-widest ${
-                  showAnswer 
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                    : 'border border-slate-600 text-slate-300'
-                }`}
+              {/* Nút đáp án (toggle blur) */}
+              <button
                 onClick={() => setShowAnswer(!showAnswer)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-95 ${
+                  showAnswer
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-lg shadow-emerald-500/10'
+                    : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white'
+                }`}
               >
                 {showAnswer ? (
-                  <>
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    Ẩn đáp án
-                  </>
+                  <><EyeOff className="w-3.5 h-3.5" /> Ẩn nội dung</>
                 ) : (
-                  <>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Xem đáp án
-                  </>
+                  <><Eye className="w-3.5 h-3.5" /> Xem đáp án</>
                 )}
-              </Button>
+              </button>
 
-              {/* Download button */}
-              <Button
-                variant="secondary"
-                className="h-10 px-5 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-600 text-slate-300 hover:bg-white/5"
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = imageUrl;
-                  link.download = `Document_${title.replace(/\s+/g, '_')}.png`;
-                  link.click();
-                }}
+              {/* Nút tải về */}
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all active:scale-95"
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-3.5 h-3.5" />
                 Tải về
-              </Button>
+              </button>
             </div>
           </div>
         </div>

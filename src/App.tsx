@@ -1,7 +1,7 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- * App.tsx - Phần 1: Imports & Authentication
+ * App.tsx - Tích hợp ImagePreviewModal toàn cục
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -19,8 +19,7 @@ import {
 } from 'firebase/auth';
 import { 
   collection, onSnapshot, query, orderBy, limit, 
-  doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc, 
-  Firestore
+  doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc
 } from 'firebase/firestore';
 
 // --- TYPES & CONSTANTS ---
@@ -57,14 +56,14 @@ const SidebarItem = ({ label, icon: Icon, active, onClick }: any) => (
 
 export default function App() {
 
-  // --- 1. STATE QUẢN LÝ NGƯỜI DÙNG & GIAO DIỆN (Chỉ khai báo 1 lần) ---
+  // --- STATE QUẢN LÝ NGƯỜI DÙNG & GIAO DIỆN ---
   const [view, setView] = useState<string>('home');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [loginRole, setLoginRole] = useState<'initial' | 'admin' | 'user'>('initial');
   const [isRegistering, setIsRegistering] = useState(false);
 
-  // --- 2. STATE DỮ LIỆU ---
+  // --- STATE DỮ LIỆU ---
   const [documents, setDocuments] = useState<Document[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -74,12 +73,55 @@ export default function App() {
   const [vaultFilter, setVaultFilter] = useState({ grade: 'All', subject: 'All', type: 'All', search: '' });
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
 
+  // --- STATE CHO IMAGE PREVIEW MODAL (TOÀN CỤC) ---
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalDocId, setModalDocId] = useState('');
 
-  // --- 1. LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP ---
+  // --- STATE ẢNH UPLOAD ---
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Bài viết
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  // --- HÀM MỞ/ĐÓNG IMAGE PREVIEW MODAL ---
+  const openImagePreview = (url: string, title: string, docId: string) => {
+    setModalImageUrl(url);
+    setModalTitle(title);
+    setModalDocId(docId);
+    setModalOpen(true);
+  };
+
+  const closeImagePreview = () => {
+    setModalOpen(false);
+    // Delay clear để tránh flash
+    setTimeout(() => {
+      setModalImageUrl(null);
+      setModalTitle('');
+      setModalDocId('');
+    }, 300);
+  };
+
+  // --- HÀM XỬ LÝ ẢNH UPLOAD ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP ---
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (fireUser) => {
       if (fireUser) {
-        // Tạm thời map dữ liệu Firebase Auth vào interface User
         setUser({
           id: fireUser.uid,
           username: fireUser.email?.split('@')[0] || 'Học sinh',
@@ -95,20 +137,17 @@ export default function App() {
         setView('login');
       }
     });
-
     return () => unsubAuth();
   }, []);
 
-  // --- 2. LẮNG NGHE FIREBASE FIRESTORE (Dữ liệu tự động cập nhật) ---
+  // --- LẮNG NGHE FIREBASE FIRESTORE ---
   useEffect(() => {
     if (!user) return;
 
-    // Lấy tài liệu
     const unsubDocs = onSnapshot(collection(db, "documents"), (snap) => {
       setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Document)));
     });
 
-    // Lấy bài đăng cộng đồng (giới hạn 50 bài mới nhất)
     const qPosts = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(50));
     const unsubPosts = onSnapshot(qPosts, (snap) => {
       setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
@@ -125,80 +164,18 @@ export default function App() {
     setUser(null);
     setView('login');
   };
-  // --- 3. CÁC HÀM XỬ LÝ (HANDLERS) ---
-  // xử lý ảnh 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (file) {
-    // Kiểm tra kích thước (ví dụ giới hạn 2MB cho Base64 để tránh quá tải database)
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
-      return;
-    }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string); // Lưu ảnh dưới dạng chuỗi Base64
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-// Handler mở popup xem ảnh đề thi với title và docId
-const openImagePreview = (url: string, title: string, docId: string) => {
-  setSelectedImage(url);
-  setSelectedImageTitle(title);
-  setSelectedImageDocId(docId);
-};
-
-// Handler đóng popup
-const closeImagePreview = () => {
-  setSelectedImage(null);
-  setSelectedImageTitle('');
-  setSelectedImageDocId('');
-};
-
-// Handler báo cáo tài liệu
-const handleReportDocument = async (docId: string) => {
-  // TODO: Implement report document logic
-  console.log("Report document:", docId);
-};
-
-// block
-  const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
-  if (!window.confirm(`Bạn có chắc chắn muốn ${currentStatus ? 'Chặn' : 'Bỏ chặn'} người dùng này?`)) return;
-  
-  try {
-    const userRef = fDoc(db, "users", userId);
-    await updateDoc(userRef, {
-      isBlocked: !currentStatus
-    });
-    alert("Cập nhật trạng thái người dùng thành công!");
-  } catch (error) {
-    console.error("Lỗi khi cập nhật trạng thái user:", error);
-    alert("Không thể cập nhật trạng thái người dùng.");
-  }
-};
-  // Xử lý đăng nhập
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  const fd = new FormData(e.currentTarget);
-  const emailInput = fd.get('username')?.toString() || '';
-  const password = fd.get('password')?.toString() || '';
-  const randomId = Math.floor(1000 + Math.random() * 9000).toString();
-  // Tự động thêm đuôi email nếu người dùng chỉ nhập tên
-  const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const emailInput = fd.get('username')?.toString() || '';
+    const password = fd.get('password')?.toString() || '';
+    const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
 
-  setLoading(true);
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const loggedInUser = userCredential.user;
-
-    // 1. Tạo object user mới
-    const userRef = fDoc(db, "users", loggedInUser.uid);
-      
-      // Tạo mã 4 số ngẫu nhiên dự phòng
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
       const newRandomId = Math.floor(1000 + Math.random() * 9000).toString();
 
       const userData: User = {
@@ -209,57 +186,32 @@ const handleReportDocument = async (docId: string) => {
         isBlocked: false,
         bookmarks: [],
         school: 'THPT Thái Hòa',
-        // Gán anonymousId nếu có trong database (logic này sẽ được Firebase tự động sync ở useEffect)
-        anonymousId: newRandomId 
+        anonymousId: newRandomId
       };
 
-      // Cập nhật lên Firestore để đảm bảo user luôn có anonymousId cố định
-      // Dùng { merge: true } để không ghi đè dữ liệu cũ
-      await updateDoc(userRef, {
-        anonymousId: newRandomId // Sẽ chỉ cập nhật nếu field này chưa tồn tại hoặc cần refresh
-      }).catch(async () => {});
-    // 2. Kích hoạt React Re-render
-    setUser(userData); 
-
-    // 3. Chuyển trang ngay lập tức
-    if (userData.role === 'admin') {
-      console.log("Quyền Admin xác thực thành công!");
-      setView('admin'); // Ép view sang admin
-    } else {
-      setView('home');
+      setUser(userData);
+      if (userData.role === 'admin') {
+        setView('admin');
+      } else {
+        setView('home');
+      }
+    } catch (err: any) {
+      alert("Sai tài khoản hoặc mật khẩu!");
+    } finally {
+      setLoading(false);
     }
+  };
 
-  } catch (err: any) {
-    console.error("Lỗi đăng nhập:", err);
-    alert("Sai tài khoản hoặc mật khẩu QTV!");
-  } finally {
-    setLoading(false);
-  }
-};
-  // bổ trợ
-  // State cho Cộng đồng
-
-const [replyingTo, setReplyingTo] = useState<string | null>(null);
-
-// State để xem ảnh to (Modal)
-const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedImageTitle, setSelectedImageTitle] = useState<string>('');
-  const [selectedImageDocId, setSelectedImageDocId] = useState<string>('');
-  // Xử lý Lưu/Bỏ lưu tài liệu (Bookmark)
   const handleBookmark = async (docId: string) => {
     if (!user) return;
     try {
       const userRef = fDoc(db, "users", user.id);
-      const currentBookmarks = user.bookmarks || []; 
-    const isBookmarked = currentBookmarks.includes(docId);
-    
-    const updatedBookmarks = isBookmarked 
-      ? currentBookmarks.filter(id => id !== docId)
-      : [...currentBookmarks, docId];
-      
+      const currentBookmarks = user.bookmarks || [];
+      const isBookmarked = currentBookmarks.includes(docId);
+      const updatedBookmarks = isBookmarked
+        ? currentBookmarks.filter(id => id !== docId)
+        : [...currentBookmarks, docId];
       setUser({ ...user, bookmarks: updatedBookmarks });
-
-      // Cập nhật Firebase
       await updateDoc(userRef, {
         bookmarks: isBookmarked ? arrayRemove(docId) : arrayUnion(docId)
       });
@@ -267,113 +219,115 @@ const [selectedImage, setSelectedImage] = useState<string | null>(null);
       console.error("Lỗi bookmark:", err);
     }
   };
-//bài viết
-// 📝 HÀM XỬ LÝ ĐĂNG BÀI (Dán vào App.tsx)
-const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault(); // Chặn reset trang
-  if (!user) {
-    return
-  }
 
-  const formData = new FormData(e.currentTarget);
-  const content = formData.get('content')?.toString();
-  // Kiểm tra checkbox ẩn danh từ CommunityView gửi lên
-  const isAnonymous = formData.get('isAnonymous') === 'true'; 
+  const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user) return;
+    const formData = new FormData(e.currentTarget);
+    const content = formData.get('content')?.toString();
+    const isAnonymous = formData.get('isAnonymous') === 'true';
+    if (!content?.trim() && !imagePreview) {
+      alert("Nội dung bài viết không được để trống!");
+      return;
+    }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "posts"), {
+        content: content,
+        authorId: user.id,
+        authorName: user.username,
+        isAnonymous: isAnonymous,
+        imageUrl: imagePreview || null,
+        createdAt: new Date().toISOString(),
+        likedBy: [],
+        comments: []
+      });
+      setImagePreview(null);
+      e.currentTarget.reset();
+      alert("Đã đăng bài thành công!");
+    } catch (error) {
+      alert("Lỗi: Không thể kết nối với cơ sở dữ liệu.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (!content?.trim() && !imagePreview) {
-    alert("Nội dung bài viết không được để trống!");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    // Thêm dữ liệu vào bộ sưu tập "posts" trên Firestore
-    await addDoc(collection(db, "posts"), {
-      content: content,
-      authorId: user.id,
-      authorName: user.username,
-      isAnonymous: isAnonymous, // Lưu trạng thái ẩn danh
-      imageUrl: imagePreview || null,
-      createdAt: new Date().toISOString(), // Lưu thời gian tạo
-      likedBy: [],
-      comments: []
-    });
-    
-    // Reset form sau khi thành công
-    setImagePreview(null);
-    e.currentTarget.reset(); 
-    alert("Đã đăng bài thành công lên cộng đồng!");
-  } catch (error) {
-    console.error("Lỗi Firebase:", error);
-    alert("Lỗi: Không thể kết nối với cơ sở dữ liệu.");
-  } finally {
-    setLoading(false);
-  }
-};
-  // Xử lý Thích bài viết (Like Post)
   const handleLikePost = async (postId: string) => {
     if (!user) return;
     try {
       const postRef = fDoc(db, "posts", postId);
       const post = posts.find(p => p.id === postId);
       if (!post) return;
-
       const isLiked = post.likedBy?.includes(user.id);
-      
       await updateDoc(postRef, {
         likedBy: isLiked ? arrayRemove(user.id) : arrayUnion(user.id)
       });
     } catch (err) {
-      console.error("Lỗi like bài viết:", err);
+      console.error("Lỗi like:", err);
     }
   };
-  //xóa bv
+
   const handleDeletePost = async (postId: string) => {
-  if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
-  try {
-    await deleteDoc(fDoc(db, "posts", postId));
-  } catch (err) {
-    console.error("Lỗi xóa bài:", err);
-  }
-};
-//báo cáo bv 
-const handleReportPost = async (postId: string, reason: string) => {
-  if (!user) return;
-  try {
-    await addDoc(collection(db, "reports"), {
-      targetId: postId,
-      targetType: 'post',
-      reporterId: user.id,
-      reason,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    });
-    alert("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm nhất!");
-  } catch (err) {
-    console.error("Lỗi báo cáo:", err);
-  }
-};
-//trả lời 
-const handleReplySubmit = async (postId: string, content: string) => {
-  if (!user || !content.trim()) return;
-  try {
-    const postRef = fDoc(db, "posts", postId);
-    const newReply = {
-      id: Date.now().toString(),
-      authorId: user.id,
-      authorName: user.username,
-      content,
-      createdAt: new Date().toISOString()
-    };
-    await updateDoc(postRef, {
-      comments: arrayUnion(newReply)
-    });
-    setReplyingTo(null);
-  } catch (err) {
-    console.error("Lỗi trả lời:", err);
-  }
-};
-  // Xử lý Xóa tài liệu (Admin hoặc Chủ sở hữu)
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+    try {
+      await deleteDoc(fDoc(db, "posts", postId));
+    } catch (err) {
+      console.error("Lỗi xóa bài:", err);
+    }
+  };
+
+  const handleReportPost = async (postId: string, reason: string) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, "reports"), {
+        targetId: postId,
+        targetType: 'post',
+        reporterId: user.id,
+        reason,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      alert("Đã báo cáo thành công!");
+    } catch (err) {
+      console.error("Lỗi báo cáo:", err);
+    }
+  };
+
+  // Báo cáo tài liệu (dùng trong ImagePreviewModal)
+  const handleReportDocument = async (docId: string, reason: string) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, "reports"), {
+        targetId: docId,
+        targetType: 'document',
+        reporterId: user.id,
+        reason,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error("Lỗi báo cáo tài liệu:", err);
+    }
+  };
+
+  const handleReplySubmit = async (postId: string, content: string) => {
+    if (!user || !content.trim()) return;
+    try {
+      const postRef = fDoc(db, "posts", postId);
+      const newReply = {
+        id: Date.now().toString(),
+        authorId: user.id,
+        authorName: user.username,
+        content,
+        createdAt: new Date().toISOString()
+      };
+      await updateDoc(postRef, { comments: arrayUnion(newReply) });
+      setReplyingTo(null);
+    } catch (err) {
+      console.error("Lỗi trả lời:", err);
+    }
+  };
+
   const handleDeleteDocument = async (id: string) => {
     try {
       await deleteDoc(fDoc(db, "documents", id));
@@ -382,17 +336,15 @@ const handleReplySubmit = async (postId: string, content: string) => {
       alert("Lỗi khi xóa tài liệu.");
     }
   };
-//
 
-  // Xử lý Tải tài liệu lên (Upload)
   const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    
+
     if (!imagePreview) {
-    alert("Vui lòng chọn hoặc chụp ảnh tài liệu!");
-    return;
-  }
+      alert("Vui lòng chọn hoặc chụp ảnh tài liệu!");
+      return;
+    }
 
     const fd = new FormData(e.currentTarget);
     const newDoc = {
@@ -400,15 +352,14 @@ const handleReplySubmit = async (postId: string, content: string) => {
       subject: fd.get('subject')?.toString() || 'Khác',
       grade: fd.get('grade')?.toString() || '12',
       type: fd.get('type')?.toString() || 'Tài liệu ôn tập',
-      year: fd.get('year')?.toString() || '2023-2024',
-      school: 'THPT Thái Hòa',
+      year: fd.get('year')?.toString() || '2024-2025',
+      school: fd.get('school')?.toString() || 'THPT Thái Hòa',
       authorId: user.id,
-      status: 'pending', // Chờ admin duyệt
+      status: 'pending',
       createdAt: new Date().toISOString(),
       viewCount: 0,
-      fileContent: imagePreview
+      fileContent: imagePreview  // Lưu ảnh Base64 vào Firestore
     };
- // Hàm Duyệt bài
 
     setLoading(true);
     try {
@@ -417,59 +368,59 @@ const handleReplySubmit = async (postId: string, content: string) => {
       setImagePreview(null);
       setView('vault');
     } catch (err) {
-      alert("Lỗi tải lên.");
+      alert("Lỗi tải lên. Ảnh có thể quá lớn.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
-const handleApproveDocument = async (docId: string) => {
-  try {
-    // Chỉnh sửa "documents" nếu collection của bạn tên là "posts"
-    const docRef = fDoc(db, "documents", docId); 
-    
-    await updateDoc(docRef, {
-      status: 'approved',
-      approvedAt: new Date().toISOString(),
-      // Có thể thêm người duyệt nếu muốn: approvedBy: user?.id
-    });
-    
-    alert("✅ Đã duyệt tài liệu thành công!");
-  } catch (error) {
-    console.error("Lỗi duyệt bài:", error);
-    alert("❌ Lỗi: Không thể cập nhật trạng thái tài liệu.");
-  }
-};
 
-// Hàm Từ chối bài (Xóa hoặc chuyển trạng thái từ chối)
-const handleRejectDocument = async (docId: string) => {
-  if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) return;
-  
-  try {
-    const docRef = fDoc(db, "documents", docId);
-    // Bạn có thể chọn xóa hẳn hoặc chỉ đổi status thành 'rejected'
-    await deleteDoc(docRef); 
-    
-    alert("🗑️ Đã từ chối và gỡ bỏ tài liệu.");
-  } catch (error) {
-    console.error("Lỗi từ chối bài:", error);
-    alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
-  }
-};
-  // --- 4. LOGIC TÌM KIẾM TOÀN CỤC ---
+  const handleApproveDocument = async (docId: string) => {
+    try {
+      const docRef = fDoc(db, "documents", docId);
+      await updateDoc(docRef, {
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+      });
+      alert("✅ Đã duyệt tài liệu thành công!");
+    } catch (error) {
+      alert("❌ Lỗi: Không thể cập nhật trạng thái tài liệu.");
+    }
+  };
+
+  const handleRejectDocument = async (docId: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) return;
+    try {
+      await deleteDoc(fDoc(db, "documents", docId));
+      alert("🗑️ Đã từ chối và gỡ bỏ tài liệu.");
+    } catch (error) {
+      alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
+    }
+  };
+
+  const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
+    if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) return;
+    try {
+      const userRef = fDoc(db, "users", userId);
+      await updateDoc(userRef, { isBlocked: !currentStatus });
+    } catch (error) {
+      alert("Không thể cập nhật trạng thái người dùng.");
+    }
+  };
+
   const filteredDocuments = useMemo(() => {
-    return documents.filter(d => 
+    return documents.filter(d =>
       (d.status === 'approved' || d.authorId === user?.id || user?.role === 'admin') &&
-      (d.title.toLowerCase().includes(globalSearch.toLowerCase()) || 
+      (d.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
        d.subject.toLowerCase().includes(globalSearch.toLowerCase()))
     );
   }, [documents, globalSearch, user]);
-  // --- 5. HÀM RENDER GIAO DIỆN CHÍNH ---
+
   const renderMainContent = () => {
-    // Nếu chưa đăng nhập, hiển thị LoginView
     if (!user) {
       return (
-        <LoginView 
-          loginRole={loginRole} 
+        <LoginView
+          loginRole={loginRole}
           setLoginRole={setLoginRole}
           handleLogin={handleLogin}
           loading={loading}
@@ -479,35 +430,47 @@ const handleRejectDocument = async (docId: string) => {
       );
     }
 
-    // Switch case điều hướng các View
     switch (view) {
       case 'home':
-        return <HomeView 
-          user={user} reviews={reviews} documents={documents} 
-          reports={reports} onlineUsers={onlineUsers} users={users}
-          setView={setView as any} openChat={() => {}} 
-        />;
-      
-      case 'vault':
-        return <VaultView 
-    user={user!} 
-    documents={documents} 
-    filter={vaultFilter} 
-    setFilter={setVaultFilter}
-    handleBookmark={handleBookmark} 
-    setView={setView as any}
-    handleDeleteDocument={handleDeleteDocument}
-    onPreviewImage={(url, title, docId) => openImagePreview(url, title, docId)}
-        />;
-case 'community':
         return (
-          <CommunityView 
-            user={user} 
-            posts={posts} 
-            loading={loading} 
-            setLoading={setLoading} 
+          <HomeView
+            user={user}
+            reviews={reviews}
+            documents={documents}
+            reports={reports}
             onlineUsers={onlineUsers}
-            users={users} 
+            users={users}
+            setView={setView as any}
+            openChat={() => {}}
+            // Truyền hàm mở modal xuống HomeView
+            onPreviewImage={openImagePreview}
+          />
+        );
+
+      case 'vault':
+        return (
+          <VaultView
+            user={user}
+            documents={documents}
+            filter={vaultFilter}
+            setFilter={setVaultFilter}
+            handleBookmark={handleBookmark}
+            setView={setView as any}
+            handleDeleteDocument={handleDeleteDocument}
+            // Truyền hàm mở modal toàn cục
+            onPreviewImage={openImagePreview}
+          />
+        );
+
+      case 'community':
+        return (
+          <CommunityView
+            user={user}
+            posts={posts}
+            loading={loading}
+            setLoading={setLoading}
+            onlineUsers={onlineUsers}
+            users={users}
             setView={setView as any}
             handleLikePost={handleLikePost}
             handleDeletePost={handleDeletePost}
@@ -523,50 +486,106 @@ case 'community':
         );
 
       case 'upload':
-        return <UploadView user={user} loading={loading} handleDocUpload={handleDocUpload} />;
+        return (
+          <UploadView
+            user={user}
+            loading={loading}
+            handleDocUpload={handleDocUpload}
+            imagePreview={imagePreview}
+            setImagePreview={setImagePreview}
+            handleImageUpload={handleImageUpload}
+          />
+        );
 
       case 'admin':
         return user.role === 'admin' ? (
-          <AdminPanel 
-            user={user} loading={loading} handleDocUpload={handleDocUpload}
-            reports={reports} users={users} setView={setView as any}
-            revealedIds={{}} setRevealedIds={() => {}}
-            handleBlockUser={() => {}} openChat={async () => {}}
-            handleCompleteReport={() => {}} handleDeleteReport={() => {}}
-            handleRestrictReporter={() => {}} openReportTarget={() => {}}
+          <AdminPanel
+            user={user}
+            loading={loading}
+            handleDocUpload={handleDocUpload}
+            reports={reports}
+            users={users}
+            setView={setView as any}
+            revealedIds={{}}
+            setRevealedIds={() => {}}
+            handleBlockUser={() => {}}
+            openChat={async () => {}}
+            handleCompleteReport={() => {}}
+            handleDeleteReport={() => {}}
+            handleRestrictReporter={() => {}}
+            openReportTarget={() => {}}
           />
-        ) : <HomeView {...{user, reviews, documents, reports, onlineUsers, users, setView: setView as any, openChat: () => {}}} />;
+        ) : (
+          <HomeView
+            user={user}
+            reviews={reviews}
+            documents={documents}
+            reports={reports}
+            onlineUsers={onlineUsers}
+            users={users}
+            setView={setView as any}
+            openChat={() => {}}
+            onPreviewImage={openImagePreview}
+          />
+        );
 
       case 'bookmarks':
         return <BookmarksView user={user} documents={documents} users={users} />;
 
       case 'account':
-        return <AccountView 
-          user={user} setUser={setUser} loading={loading} 
-          setLoading={setLoading} handleLogout={handleLogout}
-          reports={reports} handleAppealReport={() => {}}
-        />;
-      
+        return (
+          <AccountView
+            user={user}
+            setUser={setUser}
+            loading={loading}
+            setLoading={setLoading}
+            handleLogout={handleLogout}
+            reports={reports}
+            handleAppealReport={() => {}}
+          />
+        );
+
       case 'my-uploads':
-        return <MyUploadsView 
-          user={user} documents={documents} users={users} 
-          loading={loading} setLoading={setLoading} 
-          handleDeleteDocument={handleDeleteDocument} 
-        />;
+        return (
+          <MyUploadsView
+            user={user}
+            documents={documents}
+            users={users}
+            loading={loading}
+            setLoading={setLoading}
+            handleDeleteDocument={handleDeleteDocument}
+          />
+        );
 
       case 'pending-reviews':
-        return <PendingReviewsView 
-          user={user} 
-    documents={documents} 
-    users={users} 
-    loading={loading} 
-    setLoading={setLoading}
-    onApprove={handleApproveDocument} 
-    onReject={handleRejectDocument}
-        />;
+        return (
+          <PendingReviewsView
+            user={user}
+            documents={documents}
+            users={users}
+            loading={loading}
+            setLoading={setLoading}
+            onApprove={handleApproveDocument}
+            onReject={handleRejectDocument}
+            // Truyền hàm mở modal
+            onPreviewImage={openImagePreview}
+          />
+        );
 
       default:
-        return <HomeView {...{user, reviews, documents, reports, onlineUsers, users, setView: setView as any, openChat: () => {}}} />;
+        return (
+          <HomeView
+            user={user}
+            reviews={reviews}
+            documents={documents}
+            reports={reports}
+            onlineUsers={onlineUsers}
+            users={users}
+            setView={setView as any}
+            openChat={() => {}}
+            onPreviewImage={openImagePreview}
+          />
+        );
     }
   };
 
@@ -606,9 +625,12 @@ case 'community':
               </div>
             )}
           </div>
-          
+
           <div className="mt-auto p-6">
-            <button onClick={handleLogout} className="flex items-center w-full px-4 py-3 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest">
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full px-4 py-3 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest"
+            >
               <LogOut className="w-4 h-4 mr-3" /> Đăng xuất
             </button>
           </div>
@@ -621,15 +643,15 @@ case 'community':
           <header className="h-[65px] bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
             <div className="relative w-[400px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Tìm nhanh tài liệu, môn học..." 
+              <input
+                type="text"
+                placeholder="Tìm nhanh tài liệu, môn học..."
                 className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-accent/10 transition-all"
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
               />
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex flex-col items-end">
                 <span className="text-[11px] font-black text-slate-700 uppercase">{user.username}</span>
@@ -657,6 +679,17 @@ case 'community':
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ===== IMAGE PREVIEW MODAL TOÀN CỤC ===== */}
+      {/* Được mount ở cấp cao nhất, hoạt động trên tất cả các view */}
+      <ImagePreviewModal
+        isOpen={modalOpen}
+        onClose={closeImagePreview}
+        imageUrl={modalImageUrl}
+        title={modalTitle}
+        docId={modalDocId}
+        onReport={handleReportDocument}
+      />
     </div>
   );
 }

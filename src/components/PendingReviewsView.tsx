@@ -13,6 +13,7 @@ interface PendingReviewsViewProps {
   setLoading: (loading: boolean) => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onPreviewImage: (url: string, title: string, docId: string) => void;
 }
 
 const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
@@ -21,7 +22,9 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
   users,
   loading,
   setLoading,
-  onApprove, onReject
+  onApprove, onReject,
+  onPreviewImage
+  
 }) => {
   const [filter, setFilter] = useState({ subject: 'All', grade: 'All' });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);

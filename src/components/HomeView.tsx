@@ -19,6 +19,7 @@ interface HomeViewProps {
   users: User[];
   setView: (v: any) => void; // Chấp nhận kiểu view từ App.tsx
   openChat: (u: User) => void;
+  onPreviewImage: (url: string, title: string, docId: string) => void;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ 
@@ -29,7 +30,8 @@ const HomeView: React.FC<HomeViewProps> = ({
   onlineUsers,
   users,
   setView,
-  openChat
+  openChat,
+  onPreviewImage,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
