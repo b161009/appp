@@ -416,7 +416,7 @@ const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     setImagePreview(null);
     setArchiveFile(null); 
 
-    alert("Đăng bài thành công!");
+    alert("Vì Quốc Bảo quá đẹp trai nên đăng thành công!");
     setView('home');
   } catch (error) {
     alert("Lỗi rồi ní!");
