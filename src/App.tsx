@@ -379,9 +379,27 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       alert("Lỗi khi xóa tài liệu.");
     }
   };
+const handleDownload = (doc: any) => { // Ép kiểu any ở đây là xong
+  // Kiểm tra xem trường dữ liệu file nén của ní tên là gì (archiveData hay fileContent)
+  const data = doc.archiveData || doc.fileContent;
+  const name = doc.archiveName || doc.title || 'tai-lieu';
 
+  if (!data || !data.startsWith('data:application')) {
+    alert("Tài liệu này không có tệp nén đính kèm hoặc định dạng không hỗ trợ!");
+    return;
+  }
 
-
+  try {
+    const link = document.createElement('a');
+    link.href = data; 
+    link.download = name.includes('.') ? name : `${name}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    alert("Lỗi khi tải xuống!");
+  }
+};
 const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   if (!user) return;
@@ -394,6 +412,14 @@ const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
   setLoading(true);
   try {
     const fd = new FormData(e.currentTarget);
+    let archiveBase64 = null;
+    if (archiveFile) {
+      archiveBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(archiveFile);
+      });
+    }
     const newDoc = {
       title: fd.get('title')?.toString() || 'Tài liệu không tên',
       subject: fd.get('subject')?.toString() || 'Khác',
