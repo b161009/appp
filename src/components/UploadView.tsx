@@ -13,6 +13,8 @@ interface UploadViewProps {
   imagePreview?: string | null;
   setImagePreview?: (v: string | null) => void;
   handleImageUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  archiveFile: File | null; // 🔥 Nhận từ App
+  setArchiveFile: (f: File | null) => void; //
 }
 
 const UploadView: React.FC<UploadViewProps> = ({
@@ -21,12 +23,13 @@ const UploadView: React.FC<UploadViewProps> = ({
   handleDocUpload,
   imagePreview,
   setImagePreview,
-  handleImageUpload
+  handleImageUpload,
+  archiveFile,
+  setArchiveFile
 }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [archiveFile, setArchiveFile] = useState<File | null>(null);
   const archiveInputRef = useRef<HTMLInputElement>(null);
 
   const handleLocalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

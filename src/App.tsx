@@ -551,6 +551,8 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             imagePreview={imagePreview}
             setImagePreview={setImagePreview}
             handleImageUpload={handleImageUpload}
+            archiveFile={archiveFile}
+            setArchiveFile={setArchiveFile}
           />
         );
 
