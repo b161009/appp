@@ -39,6 +39,7 @@ import BookmarksView from './components/BookmarksView';
 import AccountView from './components/AccountView';
 import MyUploadsView from './components/MyUploadsView';
 import PendingReviewsView from './components/PendingReviewsView';
+import ImagePreviewModal from './components/ImagePreviewModal';
 
 // Thành phần Sidebar Item
 const SidebarItem = ({ label, icon: Icon, active, onClick }: any) => (
@@ -143,7 +144,28 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 };
-  // block
+
+// Handler mở popup xem ảnh đề thi với title và docId
+const openImagePreview = (url: string, title: string, docId: string) => {
+  setSelectedImage(url);
+  setSelectedImageTitle(title);
+  setSelectedImageDocId(docId);
+};
+
+// Handler đóng popup
+const closeImagePreview = () => {
+  setSelectedImage(null);
+  setSelectedImageTitle('');
+  setSelectedImageDocId('');
+};
+
+// Handler báo cáo tài liệu
+const handleReportDocument = async (docId: string) => {
+  // TODO: Implement report document logic
+  console.log("Report document:", docId);
+};
+
+// block
   const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
   if (!window.confirm(`Bạn có chắc chắn muốn ${currentStatus ? 'Chặn' : 'Bỏ chặn'} người dùng này?`)) return;
   
@@ -221,6 +243,8 @@ const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
 // State để xem ảnh to (Modal)
 const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageTitle, setSelectedImageTitle] = useState<string>('');
+  const [selectedImageDocId, setSelectedImageDocId] = useState<string>('');
   // Xử lý Lưu/Bỏ lưu tài liệu (Bookmark)
   const handleBookmark = async (docId: string) => {
     if (!user) return;
@@ -365,6 +389,11 @@ const handleReplySubmit = async (postId: string, content: string) => {
     e.preventDefault();
     if (!user) return;
     
+    if (!imagePreview) {
+    alert("Vui lòng chọn hoặc chụp ảnh tài liệu!");
+    return;
+  }
+
     const fd = new FormData(e.currentTarget);
     const newDoc = {
       title: fd.get('title')?.toString() || 'Tài liệu không tên',
@@ -468,7 +497,7 @@ const handleRejectDocument = async (docId: string) => {
     handleBookmark={handleBookmark} 
     setView={setView as any}
     handleDeleteDocument={handleDeleteDocument}
-    onPreviewImage={(url) => setSelectedImage(url)}
+    onPreviewImage={(url, title, docId) => openImagePreview(url, title, docId)}
         />;
 case 'community':
         return (
@@ -629,6 +658,5 @@ case 'community':
         </main>
       </div>
     </div>
-  );}
-
-
+  );
+}

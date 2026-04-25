@@ -17,6 +17,7 @@ import type { User, Document } from '../types';
 import { SUBJECTS, GRADES, EXAM_TYPES } from '../constants';
 import { Button, Card, Badge } from './UI';
 import { cn } from '../lib/utils';
+import { Star, FileText, Check, X } from 'lucide-react';
 
 interface VaultViewProps {
   user: User | null;
@@ -27,7 +28,7 @@ interface VaultViewProps {
     type: string;
     search: string;
   };
-  onPreviewImage: (url: string) => void;
+  onPreviewImage: (url: string, title: string, docId: string) => void;
   setFilter: (v: any) => void;
   handleBookmark: (docId: string) => void;
   setView: (v: any) => void;
@@ -84,7 +85,7 @@ const VaultView: React.FC<VaultViewProps> = ({
         
         <div className="flex gap-3">
           <Button 
-            variant="outline"
+            variant="secondary"
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="border-slate-200 text-slate-600 font-black text-[10px] uppercase px-4"
           >
@@ -202,7 +203,7 @@ const VaultView: React.FC<VaultViewProps> = ({
       className="flex-1 cursor-pointer" 
       onClick={() => {
         if (doc.fileContent) {
-          onPreviewImage(doc.fileContent); // Gọi hàm hiện ảnh từ App.tsx
+          onPreviewImage(doc.fileContent, doc.title, doc.id); // Gọi hàm hiện ảnh từ App.tsx
         } else {
           alert("Tài liệu này không có bản xem trước!");
         }
@@ -250,7 +251,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-accent uppercase tracking-tighter">{doc.type}</span>
                         <div className="flex gap-1">
-                           {[1,2,3,4,5].map(star => <star key={star} className="w-2 h-2 text-amber-400 fill-current" />)}
+                           {[1,2,3,4,5].map(star => <Star key={star} className="w-2 h-2 text-amber-400 fill-current" />)}
                         </div>
                       </div>
                     </td>
