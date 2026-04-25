@@ -57,7 +57,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loginRole, setLoginRole] = useState<'initial' | 'admin' | 'user'>('initial');
   const [isRegistering, setIsRegistering] = useState(false);
-  
+  const [archiveFile, setArchiveFile] = useState<File | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -381,14 +381,14 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
 
 
-  const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user) return;
+ const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!user) return;
 
-    if (!imagePreview) {
-      alert("Vui lòng chọn hoặc chụp ảnh tài liệu!");
-      return;
-    }
+    if (!imagePreview && !archiveFile) {
+    alert("Chọn ảnh hoặc file nén để tải lên!");
+    return;
+  }
 
     const fd = new FormData(e.currentTarget);
     const newDoc = {
@@ -404,13 +404,11 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       createdAt: new Date().toISOString(),
       viewCount: 0,
       fileContent: imagePreview ? imagePreview : null,
-      
+      archiveName: archiveFile ? archiveFile.name : null, 
+      archiveContent: archiveFile ? "Base64_hoặc_Blob_của_file" : null
     };
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "documents"), newDoc);
-     await addDoc(collection(db, "documents"), newDoc);
+setImagePreview(null);
+    setArchiveFile(null)
 
 // Thông báo tùy theo quyền hạn
 if (user.role === 'admin') {
@@ -418,8 +416,10 @@ if (user.role === 'admin') {
 } else {
   alert("✅ Tải lên thành công! Tài liệu của bạn sẽ được xét duyệt trong thời gian sớm nhất.");
 }
+    try {       await addDoc(collection(db, "documents"), newDoc);
+       e.currentTarget.reset();
 
-setView('home'); // Quay về trang chủ
+     setView('home'); // Quay về trang chủ
       setImagePreview(null);
       setView('vault');
     } catch (err) {
