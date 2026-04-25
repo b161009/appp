@@ -164,6 +164,7 @@ return (
           <div className="flex items-center gap-4">
             <div className="relative group">
   {/* Vòng tròn hiển thị Avatar */}
+
   <div className="w-20 h-20 rounded-full overflow-hidden bg-sidebar text-white text-3xl font-black flex items-center justify-center border-2 border-slate-100 shadow-md">
     {user?.avatar ? (
       <img 
@@ -177,17 +178,19 @@ return (
     )}
   </div>
 
-  {/* Nút "Đổi ảnh" hiện lên khi di chuột vào (Hover) */}
-  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
-    <Upload className="w-5 h-5 mb-1" />
-    <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
-    <input 
-      type="file" 
-      className="hidden" 
-      accept="image/*" 
-      onChange={onFileChange} // Hàm này ní đã viết ở turn trước
-    />
-  </label>
+  {/* Chỉ Admin mới thấy nút "Đổi ảnh" */}
+  {user?.role === 'admin' && (
+    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
+      <Upload className="w-5 h-5 mb-1" />
+      <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
+      <input 
+        type="file" 
+        className="hidden" 
+        accept="image/*" 
+        onChange={onFileChange}
+      />
+    </label>
+  )}
 </div>
 
             <div>

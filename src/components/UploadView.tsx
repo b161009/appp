@@ -1,6 +1,6 @@
-// UploadView.tsx - Component tải lên tài liệu với chụp/chọn ảnh
+// UploadView.tsx - Component tải lên tài liệu với chụp/chọn ảnh + file nén
 import React, { useState, useRef } from 'react';
-import { Upload, FileCheck, Camera, ImagePlus, X, Eye, EyeOff } from 'lucide-react';
+import { Upload, FileCheck, Camera, ImagePlus, X, Eye, EyeOff, FileArchive } from 'lucide-react';
 import type { User } from '../types';
 import { Button, Card } from './UI';
 import { SUBJECTS, GRADES, EXAM_TYPES } from '../constants';
@@ -26,6 +26,8 @@ const UploadView: React.FC<UploadViewProps> = ({
   const [previewVisible, setPreviewVisible] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [archiveFile, setArchiveFile] = useState<File | null>(null);
+  const archiveInputRef = useRef<HTMLInputElement>(null);
 
   const handleLocalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -241,6 +243,67 @@ const UploadView: React.FC<UploadViewProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* File nén (ZIP/RAR) - Tùy chọn */}
+          <div className="md:col-span-3 space-y-3 pt-4 border-t border-slate-100">
+            <label className="text-[10px] font-black uppercase opacity-40 px-1">
+              File nén (ZIP/RAR) - Tùy chọn
+              <span className="ml-2 text-slate-400 normal-case opacity-100">(Đính kèm nếu có nhiều file)</span>
+            </label>
+
+            {!archiveFile ? (
+              <div 
+                onClick={() => archiveInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 rounded-xl p-6 bg-slate-50/50 hover:bg-slate-50 hover:border-accent/50 transition-all cursor-pointer"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
+                    <FileArchive className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-500">Tải lên file nén</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Hỗ trợ ZIP, RAR • Tối đa 20MB</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                  <FileArchive className="w-5 h-5 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-700 truncate">{archiveFile.name}</p>
+                  <p className="text-[10px] text-slate-400">{(archiveFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArchiveFile(null);
+                    if (archiveInputRef.current) archiveInputRef.current.value = '';
+                  }}
+                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
+            )}
+            <input
+              ref={archiveInputRef}
+              type="file"
+              className="hidden"
+              accept=".zip,.rar,.7z"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 20 * 1024 * 1024) {
+                    alert('File nén quá lớn! Vui lòng chọn file dưới 20MB.');
+                    return;
+                  }
+                  setArchiveFile(file);
+                }
+              }}
+            />
           </div>
 
           {/* Ghi chú */}
