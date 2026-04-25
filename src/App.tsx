@@ -1,13 +1,10 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- * App.tsx - Tích hợp ImagePreviewModal toàn cục
+ * App.tsx - Fixed Sidebar & Scope Logic
  */
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, MessageSquare, Users, ShieldCheck, Search, Star, Heart, Flag, Trash2,
-  ChevronRight, School, AlertTriangle, Plus, Bookmark, Upload, Clock, Bell, LogOut
+  ChevronRight, School, AlertTriangle, Plus, Bookmark, Upload, Clock, Bell, LogOut, LucideIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
@@ -15,10 +12,10 @@ import { cn } from './lib/utils';
 // --- FIREBASE SERVICES ---
 import { auth, db } from './firebase'; 
 import { 
-  onAuthStateChanged, signInWithEmailAndPassword, signOut 
+  onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { 
-  collection, onSnapshot, query, orderBy, limit, 
+  collection, onSnapshot, query, orderBy, limit, setDoc,
   doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc
 } from 'firebase/firestore';
 
@@ -40,30 +37,27 @@ import MyUploadsView from './components/MyUploadsView';
 import PendingReviewsView from './components/PendingReviewsView';
 import ImagePreviewModal from './components/ImagePreviewModal';
 
-// Thành phần Sidebar Item
-const SidebarItem = ({ label, icon: Icon, active, onClick }: any) => (
-  <div 
-    className={cn(
-      "flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200 mb-1 group",
-      active ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-white/60 hover:bg-white/5 hover:text-white"
-    )}
+// --- 1. GẮN SIDEBARITEM Ở ĐÂY (Để fix lỗi "Cannot find name SidebarItem") ---
+const SidebarItem = ({ label, icon: Icon, active, onClick }: { label: string, icon: LucideIcon, active: boolean, onClick: () => void }) => (
+  <button
     onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${
+      active ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/50 hover:bg-white/5 hover:text-white'
+    }`}
   >
-    <Icon className={cn("w-4 h-4 mr-3 transition-transform group-hover:scale-110", active ? "text-white" : "text-accent")} />
-    <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
-  </div>
+    <Icon className="w-4 h-4" />
+    {label}
+  </button>
 );
 
 export default function App() {
-
-  // --- STATE QUẢN LÝ NGƯỜI DÙNG & GIAO DIỆN ---
+  // --- STATE PHẢI KHAI BÁO ĐẦU TIÊN (Để fix lỗi 'used before declaration') ---
   const [view, setView] = useState<string>('home');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [loginRole, setLoginRole] = useState<'initial' | 'admin' | 'user'>('initial');
   const [isRegistering, setIsRegistering] = useState(false);
-
-  // --- STATE DỮ LIỆU ---
+  
   const [documents, setDocuments] = useState<Document[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -73,17 +67,52 @@ export default function App() {
   const [vaultFilter, setVaultFilter] = useState({ grade: 'All', subject: 'All', type: 'All', search: '' });
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
 
-  // --- STATE CHO IMAGE PREVIEW MODAL (TOÀN CỤC) ---
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
   const [modalTitle, setModalTitle] = useState('');
   const [modalDocId, setModalDocId] = useState('');
-
-  // --- STATE ẢNH UPLOAD ---
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  // Bài viết
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  // --- 2. HÀM LOGIN (Đặt sau khi đã có các State ở trên) ---
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const emailInput = fd.get('username') as string;
+    const password = fd.get('password') as string;
+    const nickname = fd.get('nickname') as string;
+    const confirmPassword = fd.get('confirmPassword') as string;
+    
+    // Tự động thêm @gmail.com nếu user chỉ nhập tên
+    const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
+
+    try {
+      if (isRegistering) {
+        if (password !== confirmPassword) throw new Error("Mật khẩu không khớp!");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(fDoc(db, "users", userCredential.user.uid), {
+          id: userCredential.user.uid,
+          username: nickname || email.split('@')[0],
+          email: email,
+          role: "user",
+          isBlocked: false,
+          isMuted: false,
+          bookmarks: [],
+          createdAt: new Date().toISOString()
+        });
+        setIsRegistering(false);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (error: any) {
+      alert("Lỗi: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
   // --- HÀM MỞ/ĐÓNG IMAGE PREVIEW MODAL ---
   const openImagePreview = (url: string, title: string, docId: string) => {
@@ -119,34 +148,44 @@ export default function App() {
   };
 
   // --- LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP ---
-  useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (fireUser) => {
-      if (fireUser) {
-        setUser({
-          id: fireUser.uid,
-          username: fireUser.email?.split('@')[0] || 'Học sinh',
-          email: fireUser.email || '',
-          role: fireUser.email === 'adminhehe@gmail.com' ? 'admin' : 'user',
-          isBlocked: false,
-          isMuted: false,
-          bookmarks: [],
-          school: 'THPT Thái Hòa',
-          grade: ''
-        });
-      } else {
-        setUser(null);
-        setView('login');
-      }
-    });
-    return () => unsubAuth();
-  }, []);
+useEffect(() => {
+  const unsubAuth = onAuthStateChanged(auth, async (fireUser) => {
+    if (fireUser) {
+      // 1. Tìm thông tin user này trong Firestore
+      const userRef = fDoc(db, "users", fireUser.uid);
+      
+      // 2. Lắng nghe dữ liệu user để lấy Role realtime
+      const unsubUserDoc = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data() as User;
+          setUser({
+            ...userData,
+            id: fireUser.uid,
+          });
+        }
+      });
+
+      return () => unsubUserDoc();
+    } else {
+      setUser(null);
+      setView('login');
+    }
+  });
+  return () => unsubAuth();
+}, []);
 
   // --- LẮNG NGHE FIREBASE FIRESTORE ---
-  useEffect(() => {
+ useEffect(() => {
     if (!user) return;
 
+    // Lắng nghe tài liệu và bài viết (đã có của bạn)
     const unsubDocs = onSnapshot(collection(db, "documents"), (snap) => {
       setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Document)));
+    });
+
+    // THÊM ĐOẠN NÀY ĐỂ LẤY DANH SÁCH HỌC SINH CHO ADMIN
+    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+      setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
     });
 
     const qPosts = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(50));
@@ -157,6 +196,7 @@ export default function App() {
     return () => {
       unsubDocs();
       unsubPosts();
+      unsubUsers(); // Clear lắng nghe users
     };
   }, [user]);
 
@@ -166,43 +206,7 @@ export default function App() {
     setView('login');
   };
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const emailInput = fd.get('username')?.toString() || '';
-    const password = fd.get('password')?.toString() || '';
-    const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
 
-    setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const loggedInUser = userCredential.user;
-      const newRandomId = Math.floor(1000 + Math.random() * 9000).toString();
-
-      const userData: User = {
-        id: loggedInUser.uid,
-        username: emailInput.split('@')[0],
-        email: loggedInUser.email || '',
-        role: email === 'adminhehe@gmail.com' ? 'admin' : 'user',
-        isBlocked: false,
-        bookmarks: [],
-        school: 'THPT Thái Hòa',
-        anonymousId: newRandomId,
-        isMuted: false
-      };
-
-      setUser(userData);
-      if (userData.role === 'admin') {
-        setView('admin');
-      } else {
-        setView('home');
-      }
-    } catch (err: any) {
-      alert("Sai tài khoản hoặc mật khẩu!");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBookmark = async (docId: string) => {
     if (!user) return;
@@ -338,6 +342,8 @@ export default function App() {
       alert("Lỗi khi xóa tài liệu.");
     }
   };
+
+
 
   const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -647,7 +653,6 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
           </div>
         </aside>
       )}
-
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {user && (
@@ -703,4 +708,4 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
       />
     </div>
   );
-}
+};

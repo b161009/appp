@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { School, ArrowLeft } from 'lucide-react'
 import { Button } from './UI'
-
 interface LoginViewProps {
   loginRole: 'initial' | 'admin' | 'user'
   setLoginRole: (r: 'initial' | 'admin' | 'user') => void
@@ -55,32 +54,44 @@ const LoginView: React.FC<LoginViewProps> = ({
               <ArrowLeft className="w-3 h-3" /> Quay lại
             </button>
 
-            <div className="space-y-3">
-              <input
-                name="username"
-                type="text"
-                required
-                placeholder={loginRole === 'admin' ? "Tên đăng nhập QTV..." : "Email hoặc Tên đăng nhập..."}
-                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-              />
-              <input
-                name="password"
-                type="password"
-                required
-                placeholder="Mật khẩu..."
-                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-              />
-              {isRegistering && (
-                 <input
-                 name="confirmPassword"
-                 type="password"
-                 required
-                 placeholder="Xác nhận mật khẩu..."
-                 className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-               />
-              )}
-            </div>
+         <div className="space-y-3">
+  {/* HIỆN Ô NICKNAME CHỈ KHI ĐĂNG KÝ */}
+  {isRegistering && (
+    <input
+      name="nickname"
+      type="text"
+      required
+      placeholder="Tên hiển thị (VD: Nguyễn Văn A)..."
+      className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+    />
+  )}
 
+  <input
+    name="username" // Vẫn giữ name là username để logic cũ không gãy, nhưng nhập Email
+    type="email"
+    required
+    placeholder="Địa chỉ Email..."
+    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+  />
+
+  <input
+    name="password"
+    type="password"
+    required
+    placeholder="Mật khẩu..."
+    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+  />
+
+  {isRegistering && (
+    <input
+      name="confirmPassword"
+      type="password"
+      required
+      placeholder="Xác nhận mật khẩu..."
+      className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+    />
+  )}
+</div>
             {loginRole === 'user' && (
               <div className="text-center">
                 <button 

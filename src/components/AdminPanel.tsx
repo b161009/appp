@@ -1,6 +1,14 @@
 // Bảng điều khiển quản trị dành cho quản lý tài liệu, báo cáo và chặn người dùng
 import React, { useState } from 'react';
-import { Upload, AlertTriangle, FileCheck, Lock } from 'lucide-react';
+import { Upload, AlertTriangle, FileCheck, Lock,Search, 
+  MessageSquare, 
+  MessageSquareOff, 
+  Ban, 
+  ChevronDown, 
+  ChevronUp,
+  ShieldCheck,
+  UserX,
+  UserCheck } from 'lucide-react';
 import type { User, Report } from '../types';
 import { Button, Card } from './UI';
 import { SUBJECTS, GRADES, EXAM_TYPES } from '../constants';
@@ -46,7 +54,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setSelectedFileName(null);
     }
   };
-
+const [userSearchTerm, setUserSearchTerm] = useState('');
+const [isUserExpanded, setIsUserExpanded] = useState(false);
   return ( 
     <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 overflow-auto">
        <Card title="Báo cáo vi phạm (Pending)" className="shadow-none">
@@ -131,106 +140,115 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
        </Card>
 
 <Card title="Quản lý tài khoản học sinh" className="shadow-none">
+  {/* THANH TÌM KIẾM & ĐIỀU KHIỂN */}
+  <div className="p-4 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between gap-4">
+    <div className="relative flex-1">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+      <input 
+        type="text"
+        placeholder="Tìm tên học sinh hoặc ID..."
+        className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:ring-2 focus:ring-accent/10"
+        value={userSearchTerm}
+        onChange={(e) => setUserSearchTerm(e.target.value)}
+      />
+    </div>
+    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+      Tổng: {users.filter(u => u.role === 'user').length}
+    </div>
+  </div>
+
   <div className="divide-y divide-slate-50">
-    {/* Lọc danh sách: Hiện học sinh (role === 'user') và có thể hiện cả người đã bị chặn để admin thấy mà gỡ chặn */}
-    {users.filter(u => u.role === 'user').length === 0 ? (
-      <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em] opacity-40">
-        Chưa có học sinh nào
-      </div>
-    ) : (
-      users.filter(u => u.role === 'user').map(u => (
-        <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
-          <div>
-            <div className={`font-black text-xs ${u.isBlocked ? 'text-red-500' : 'text-accent'}`}>
-              {u.username} 
-              {u.isBlocked && <span className="ml-2 text-[8px] bg-red-100 px-1 rounded italic">ĐÃ CHẶN</span>}
-              {u.isMuted && <span className="ml-2 text-[8px] bg-orange-100 text-orange-600 px-1 rounded italic">CẤM CHAT</span>}
+    {(() => {
+      // Logic lọc và phân trang tại chỗ
+      const allStudents = users.filter(u => 
+        u.role === 'user' && 
+        (u.username.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.id.includes(userSearchTerm))
+      );
+      
+      // Nếu chưa bấm "Xem tất cả" thì chỉ hiện 5 người
+      const displayedStudents = isUserExpanded ? allStudents : allStudents.slice(0, 5);
+
+      if (allStudents.length === 0) {
+        return (
+          <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em] opacity-40">
+            Không tìm thấy học sinh nào
+          </div>
+        );
+      }
+
+      return (
+        <>
+          {displayedStudents.map(u => (
+            <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
+              <div>
+                <div className={`font-black text-xs ${u.isBlocked ? 'text-red-500' : 'text-accent'}`}>
+                  {u.username} 
+                  {u.isBlocked && <span className="ml-2 text-[8px] bg-red-100 px-1 rounded italic uppercase">Đã chặn</span>}
+                  {u.isMuted && <span className="ml-2 text-[8px] bg-orange-100 text-orange-600 px-1 rounded italic uppercase">Cấm chat</span>}
+                </div>
+                <div className="text-[10px] opacity-60 font-medium tracking-tight">ID: {u.id}</div>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                {/* NHẮN TIN */}
+                <button 
+                  onClick={() => { openChat(u); setView('support'); }}
+                  className="p-2 text-blue-500 border border-blue-100 rounded-lg bg-blue-50 hover:bg-blue-500 hover:text-white transition-all"
+                  title="Nhắn tin hỗ trợ"
+                >
+                  <MessageSquare size={14} />
+                </button>
+
+                {/* CẤM CHAT (Mute) */}
+                <button 
+                  onClick={() => onToggleMuteUser(u.id, u.isMuted || false)}
+                  className={`p-2 rounded-lg border transition-all ${
+                    u.isMuted 
+                    ? 'bg-orange-500 text-white border-orange-500' 
+                    : 'bg-orange-50 text-orange-400 border-orange-100 hover:text-orange-600'
+                  }`}
+                  title={u.isMuted ? "Bỏ cấm chat" : "Cấm đăng bài & bình luận"}
+                >
+                  <MessageSquareOff size={14} />
+                </button>
+
+                {/* CHẶN (Block) */}
+                <button 
+                  onClick={() => onToggleBlockUser(u.id, u.isBlocked || false)}
+                  className={`p-2 rounded-lg border transition-all ${
+                    u.isBlocked 
+                    ? 'bg-red-600 text-white border-red-600' 
+                    : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-red-600'
+                  }`}
+                  title={u.isBlocked ? "Bỏ chặn" : "Chặn tài khoản"}
+                >
+                  <Ban size={14} />
+                </button>
+              </div>
             </div>
-            <div className="text-[10px] opacity-60 font-medium tracking-tight">ID: {u.id}</div>
-          </div>
+          ))}
 
-          <div className="flex gap-2 items-center">
-            {/* 1. NÚT NHẮN TIN */}
-            <button 
-              onClick={() => {
-                openChat(u);
-                setView('support');
-              }}
-              className="text-blue-500 font-black text-[10px] uppercase border border-blue-200 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 transition-all"
-            >
-              Nhắn tin
-            </button>
-
-            {/* 2. NÚT CẤM BÌNH LUẬN (Mute) - Bạn cần thêm hàm handleToggleMuteUser vào props nhé */}
-            <button 
-              onClick={() => onToggleMuteUser?.(u.id, u.isMuted || false)}
-              className={`font-black text-[10px] uppercase border px-2 py-1 rounded transition-all ${
-                u.isMuted 
-                ? 'bg-orange-500 text-white border-orange-500' 
-                : 'bg-orange-50 text-orange-500 border-orange-200 hover:bg-orange-100'
-              }`}
-              title="Cấm/Bỏ cấm đăng bài & bình luận"
-            >
-              {u.isMuted ? 'Bỏ cấm chat' : 'Cấm chat'}
-            </button>
-
-            {/* 3. NÚT CHẶN (Block) - Sử dụng hàm handleToggleBlockUser của bạn */}
-            <button 
-              onClick={() => onToggleBlockUser(u.id, u.isBlocked || false)}
-              className={`font-black text-[10px] uppercase border px-2 py-1 rounded transition-all ${
-                u.isBlocked 
-                ? 'bg-red-600 text-white border-red-600' 
-                : 'bg-warning/5 text-warning border-warning/20 hover:bg-warning/10'
-              }`}
-            >
-              {u.isBlocked ? 'Bỏ chặn' : 'Chặn'}
-            </button>
-          </div>
-        </div>
-      ))
-    )}
+          {/* NÚT XEM TẤT CẢ / THU GỌN */}
+          {allStudents.length > 5 && (
+            <div className="p-3 bg-slate-50/50 text-center">
+              <button 
+                onClick={() => setIsUserExpanded(!isUserExpanded)}
+                className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-accent flex items-center justify-center gap-2 w-full"
+              >
+                {isUserExpanded ? (
+                  <>Thu gọn danh sách <ChevronUp size={12} /></>
+                ) : (
+                  <>Xem tất cả ({allStudents.length}) <ChevronDown size={12} /></>
+                )}
+              </button>
+            </div>
+          )}
+        </>
+      );
+    })()}
   </div>
 </Card>
-       <Card title="Danh sách đã chặn" className="shadow-none lg:col-span-2">
-          <div className="divide-y divide-slate-50">
-             {users.filter(u => u.isBlocked).length === 0 ? (
-                <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em] opacity-40">Chưa có tài khoản bị chặn</div>
-             ) : (
-                <div className="space-y-3">
-                   {users.filter(u => u.isBlocked).map(u => (
-                     <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors border border-slate-100 rounded">
-                        <div className="flex items-center gap-4">
-                           <div className="w-8 h-8 bg-warning/10 rounded-full flex items-center justify-center flex-shrink-0">
-                              <Lock className="w-4 h-4 text-warning" />
-                           </div>
-                           <div>
-                              <div className="font-black text-xs text-slate-700">{u.username}</div>
-                              <div className="text-[10px] opacity-60 font-medium">ID: {u.id}</div>
-                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                           <span 
-                             onClick={() => {
-                               fetch('/api/admin/unblock-user', {
-                                 method: 'POST',
-                                 headers: { 'Content-Type': 'application/json' },
-                                 body: JSON.stringify({ userId: u.id })
-                               }).then(() => {
-                                 alert('Đã bỏ chặn tài khoản');
-                                 window.location.reload();
-                               });
-                             }}
-                             className="text-green-600 font-black text-[10px] cursor-pointer hover:bg-green-50 uppercase tracking-tighter border border-green-200 px-3 py-1.5 rounded bg-green-50 transition-colors"
-                           >
-                             Bỏ chặn
-                           </span>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             )}
-          </div>
-       </Card>    </div>
-  );
-};
-export default AdminPanel;
+    </div>
+  );}
+;
+export default AdminPanel; 
