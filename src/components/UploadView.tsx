@@ -319,26 +319,28 @@ const UploadView: React.FC<UploadViewProps> = ({
 
           {/* Nút submit */}
           <div className="md:col-span-3 flex justify-end gap-3 pt-2">
-            <Button
-  type="submit"
-  // 🔥 LOGIC: Chỉ khóa khi (Loading) HOẶC (Cả ảnh và File nén đều KHÔNG CÓ)
-  disabled={loading || (!imagePreview && !archiveFile)} 
-  className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
->
-  {loading ? 'Đang tải lên...' : 'Tải lên tài liệu'}
-
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Đang tải lên...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <FileCheck className="w-4 h-4" />
-                  Tải lên tài liệu
-                </span>
-              )}
-            </Button>
+            {/* Nút submit */}
+<div className="md:col-span-3 flex justify-end gap-3 pt-2">
+  <Button
+    type="submit"
+    // 🔥 LOGIC ĐÚNG: Chỉ khóa khi (Đang tải) HOẶC (Cả ảnh VÀ tệp đều trống)
+    // Dấu ! đứng trước (imagePreview || archiveFile) nghĩa là nếu cả 2 đều ko có thì mới disabled
+    disabled={loading || !(imagePreview || archiveFile)} 
+    className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
+  >
+    {loading ? (
+      <span className="flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        Đang tải lên...
+      </span>
+    ) : (
+      <span className="flex items-center gap-2">
+        <FileCheck className="w-4 h-4" />
+        Tải lên tài liệu
+      </span>
+    )}
+  </Button>
+</div>
           </div>
         </form>
       </Card>
