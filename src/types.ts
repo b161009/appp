@@ -96,6 +96,7 @@ export interface User {
   username: string;
   password?: string;
   role:"mod" | "admin" | "user";
+  avatar?: string;
   online?: boolean;
   bookmarks?: string[]; // Document IDs
   email?: string;

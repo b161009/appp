@@ -321,10 +321,12 @@ const UploadView: React.FC<UploadViewProps> = ({
           <div className="md:col-span-3 flex justify-end gap-3 pt-2">
             <Button
   type="submit"
-  // Logic mới: Chỉ khóa nút khi (Đang loading) HOẶC (Cả ảnh và file nén đều trống)
+  // 🔥 LOGIC: Chỉ khóa khi (Loading) HOẶC (Cả ảnh và File nén đều KHÔNG CÓ)
   disabled={loading || (!imagePreview && !archiveFile)} 
   className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
 >
+  {loading ? 'Đang tải lên...' : 'Tải lên tài liệu'}
+
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
