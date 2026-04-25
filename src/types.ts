@@ -95,12 +95,13 @@ export interface User {
   id: string;
   username: string;
   password?: string;
-  role: "admin" | "user";
-  isBlocked: boolean;
+  role:"mod" | "admin" | "user";
   online?: boolean;
   bookmarks?: string[]; // Document IDs
   email?: string;
   school?: string;
   grade?: string;
   bannedUntil?: string;
+  isBlocked: boolean; // Chặn hoàn toàn không cho đăng nhập
+  isMuted: boolean;   // Cấm đăng bài & bình luận
 }

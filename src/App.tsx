@@ -128,6 +128,7 @@ export default function App() {
           email: fireUser.email || '',
           role: fireUser.email === 'adminhehe@gmail.com' ? 'admin' : 'user',
           isBlocked: false,
+          isMuted: false,
           bookmarks: [],
           school: 'THPT Thái Hòa',
           grade: ''
@@ -186,7 +187,8 @@ export default function App() {
         isBlocked: false,
         bookmarks: [],
         school: 'THPT Thái Hòa',
-        anonymousId: newRandomId
+        anonymousId: newRandomId,
+        isMuted: false
       };
 
       setUser(userData);

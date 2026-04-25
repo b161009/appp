@@ -48,7 +48,7 @@ const SupportView: React.FC<SupportViewProps> = ({
         .then(setSupportConversations)
         .catch(console.error);
     } else if (user && !selectedUser && !hasAutoSelected.current) {
-      const adminUser: User = { id: 'admin', username: 'Quản trị viên', role: 'admin' as any, isBlocked: false, online: true };
+      const adminUser: User = { id: 'admin', username: 'Quản trị viên', role: 'admin' as any, isBlocked: false, online: true, isMuted: false };
       hasAutoSelected.current = true;
       setSelectedUser(adminUser);
       openChat(adminUser);

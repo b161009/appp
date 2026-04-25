@@ -116,7 +116,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               if (reporter) {
                                 openChat(reporter);
                               } else {
-                                openChat({ id: rep.reportedBy, username: rep.reportedBy, role: 'user', isBlocked: false, online: false });
+                                openChat({ id: rep.reportedBy, username: rep.reportedBy, role: 'user', isBlocked: false, online: false, isMuted: false });
                               }
                               setView('support');
                             }}
