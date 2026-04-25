@@ -399,17 +399,24 @@ export default function App() {
       alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
     }
   };
+// Hàm chặn đăng nhập
+const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
+  if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) return;
+  try {
+    await updateDoc(fDoc(db, "users", userId), { isBlocked: !currentStatus });
+  } catch (error) {
+    alert("Lỗi cập nhật trạng thái chặn");
+  }
+};
 
-  const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
-    if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) return;
-    try {
-      const userRef = fDoc(db, "users", userId);
-      await updateDoc(userRef, { isBlocked: !currentStatus });
-    } catch (error) {
-      alert("Không thể cập nhật trạng thái người dùng.");
-    }
-  };
-
+// Hàm cấm chat/đăng bài
+const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
+  try {
+    await updateDoc(fDoc(db, "users", userId), { isMuted: !currentStatus });
+  } catch (error) {
+    alert("Lỗi cập nhật trạng thái cấm");
+  }
+};
   const filteredDocuments = useMemo(() => {
     return documents.filter(d =>
       (d.status === 'approved' || d.authorId === user?.id || user?.role === 'admin') &&
@@ -516,6 +523,8 @@ export default function App() {
             handleDeleteReport={() => {}}
             handleRestrictReporter={() => {}}
             openReportTarget={() => {}}
+            onToggleBlockUser={handleToggleBlockUser}
+            onToggleMuteUser={handleToggleMuteUser}
           />
         ) : (
           <HomeView

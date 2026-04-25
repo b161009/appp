@@ -20,16 +20,14 @@ interface AdminPanelProps {
   handleDeleteReport: (reportId: string) => void;
   handleRestrictReporter: (reportId: string) => void;
   openReportTarget: (postId: string) => void;
+  onToggleBlockUser: (userId: string, currentStatus: boolean) => Promise<void>;
+  onToggleMuteUser: (userId: string, currentStatus: boolean) => Promise<void>;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
-  user,
-  loading,
-  handleDocUpload,
   reports,
-  revealedIds,
-  setRevealedIds,
-  handleBlockUser,
+  onToggleBlockUser,
+  onToggleMuteUser,
   openChat,
   setView,
   users,
@@ -132,40 +130,67 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
        </Card>
 
-       <Card title="Quản lý tài khoản học sinh" className="shadow-none">
-          <div className="divide-y divide-slate-50">
-             {users.filter(u => u.role === 'user' && !u.isBlocked).length === 0 ? (
-                <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em] opacity-40">Chưa có học sinh nào</div>
-             ) : (
-                users.filter(u => u.role === 'user' && !u.isBlocked).map(u => (
-                  <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                     <div>
-                        <div className="font-black text-xs text-accent">{u.username}</div>
-                        <div className="text-[10px] opacity-60 font-medium">ID: {u.id}</div>
-                     </div>
-                     <div className="flex gap-2">
-                        <span 
-                          onClick={() => {
-                            openChat(u);
-                            setView('support');
-                          }}
-                          className="text-blue-500 font-black text-[10px] cursor-pointer hover:underline uppercase tracking-tighter border border-blue-200 px-2 py-1 rounded bg-blue-50"
-                        >
-                          Nhắn tin
-                        </span>
-                        <span 
-                          onClick={() => handleBlockUser(u.id)}
-                          className="text-warning font-black text-[10px] cursor-pointer hover:underline uppercase tracking-tighter border border-warning/20 px-2 py-1 rounded bg-warning/5"
-                        >
-                          Chặn
-                        </span>
-                     </div>
-                  </div>
-                ))
-             )}
+<Card title="Quản lý tài khoản học sinh" className="shadow-none">
+  <div className="divide-y divide-slate-50">
+    {/* Lọc danh sách: Hiện học sinh (role === 'user') và có thể hiện cả người đã bị chặn để admin thấy mà gỡ chặn */}
+    {users.filter(u => u.role === 'user').length === 0 ? (
+      <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em] opacity-40">
+        Chưa có học sinh nào
+      </div>
+    ) : (
+      users.filter(u => u.role === 'user').map(u => (
+        <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
+          <div>
+            <div className={`font-black text-xs ${u.isBlocked ? 'text-red-500' : 'text-accent'}`}>
+              {u.username} 
+              {u.isBlocked && <span className="ml-2 text-[8px] bg-red-100 px-1 rounded italic">ĐÃ CHẶN</span>}
+              {u.isMuted && <span className="ml-2 text-[8px] bg-orange-100 text-orange-600 px-1 rounded italic">CẤM CHAT</span>}
+            </div>
+            <div className="text-[10px] opacity-60 font-medium tracking-tight">ID: {u.id}</div>
           </div>
-       </Card>
 
+          <div className="flex gap-2 items-center">
+            {/* 1. NÚT NHẮN TIN */}
+            <button 
+              onClick={() => {
+                openChat(u);
+                setView('support');
+              }}
+              className="text-blue-500 font-black text-[10px] uppercase border border-blue-200 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 transition-all"
+            >
+              Nhắn tin
+            </button>
+
+            {/* 2. NÚT CẤM BÌNH LUẬN (Mute) - Bạn cần thêm hàm handleToggleMuteUser vào props nhé */}
+            <button 
+              onClick={() => onToggleMuteUser?.(u.id, u.isMuted || false)}
+              className={`font-black text-[10px] uppercase border px-2 py-1 rounded transition-all ${
+                u.isMuted 
+                ? 'bg-orange-500 text-white border-orange-500' 
+                : 'bg-orange-50 text-orange-500 border-orange-200 hover:bg-orange-100'
+              }`}
+              title="Cấm/Bỏ cấm đăng bài & bình luận"
+            >
+              {u.isMuted ? 'Bỏ cấm chat' : 'Cấm chat'}
+            </button>
+
+            {/* 3. NÚT CHẶN (Block) - Sử dụng hàm handleToggleBlockUser của bạn */}
+            <button 
+              onClick={() => onToggleBlockUser(u.id, u.isBlocked || false)}
+              className={`font-black text-[10px] uppercase border px-2 py-1 rounded transition-all ${
+                u.isBlocked 
+                ? 'bg-red-600 text-white border-red-600' 
+                : 'bg-warning/5 text-warning border-warning/20 hover:bg-warning/10'
+              }`}
+            >
+              {u.isBlocked ? 'Bỏ chặn' : 'Chặn'}
+            </button>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</Card>
        <Card title="Danh sách đã chặn" className="shadow-none lg:col-span-2">
           <div className="divide-y divide-slate-50">
              {users.filter(u => u.isBlocked).length === 0 ? (
