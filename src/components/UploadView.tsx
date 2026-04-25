@@ -141,7 +141,7 @@ const UploadView: React.FC<UploadViewProps> = ({
           {/* ===== KHU VỰC UPLOAD ẢNH ===== */}
           <div className="md:col-span-3 space-y-3">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">
-              Ảnh đề thi / tài liệu *
+              Ảnh đề thi / tài liệu 
               <span className="ml-2 text-accent normal-case opacity-100">(Tối đa 5MB)</span>
             </label>
 
@@ -248,7 +248,7 @@ const UploadView: React.FC<UploadViewProps> = ({
           {/* File nén (ZIP/RAR) - Tùy chọn */}
           <div className="md:col-span-3 space-y-3 pt-4 border-t border-slate-100">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">
-              File nén (ZIP/RAR) - Tùy chọn
+              File nén (ZIP/RAR) 
               <span className="ml-2 text-slate-400 normal-case opacity-100">(Đính kèm nếu có nhiều file)</span>
             </label>
 
@@ -320,10 +320,11 @@ const UploadView: React.FC<UploadViewProps> = ({
           {/* Nút submit */}
           <div className="md:col-span-3 flex justify-end gap-3 pt-2">
             <Button
-              type="submit"
-              disabled={loading || !imagePreview}
-              className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
-            >
+  type="submit"
+  // Logic mới: Chỉ khóa nút khi (Đang loading) HOẶC (Cả ảnh và file nén đều trống)
+  disabled={loading || (!imagePreview && !archiveFile)} 
+  className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
+>
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
