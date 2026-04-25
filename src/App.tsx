@@ -693,45 +693,37 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {user && (
-          <header className="h-[65px] bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
-            <div className="relative w-[400px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm nhanh tài liệu, môn học..."
-                className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-accent/10 transition-all"
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-              />
-            </div>
-
-            <div className="relative group">
-  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg bg-sidebar text-white flex items-center justify-center">
-    {user.avatar ? (
-      <img src={user.avatar} className="w-full h-full object-cover" />
-    ) : (
-      <span className="text-3xl font-black">{user.username.slice(0, 2).toUpperCase()}</span>
-    )}
+         <header className="h-[65px] bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
+  {/* 1. Ô tìm kiếm bên trái */}
+  <div className="relative w-[400px]">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+    <input
+      type="text"
+      placeholder="Tìm nhanh tài liệu, môn học..."
+      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-accent/10 transition-all"
+      value={globalSearch}
+      onChange={(e) => setGlobalSearch(e.target.value)}
+    />
   </div>
-  
-  {/* Nút upload hiện ra khi di chuột vào avatar */}
-  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
-    <Upload className="w-5 h-5 mb-1" />
-    <span className="text-[8px] font-bold uppercase">Đổi ảnh</span>
-    <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
-  </label>
-</div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs overflow-hidden">
-                {user.avatar ? (
-                  <img src={user.avatar} className="w-full h-full object-cover" />
-                ) : (
-                  user.username.slice(0, 2).toUpperCase()
-                )}
-              </div>
-            </div>
-          </header>
+  {/* 2. Thông tin User & Avatar nhỏ bên phải */}
+  <div className="flex items-center gap-4">
+    {/* Tên và Role */}
+    <div className="text-right hidden sm:block">
+      <div className="text-[11px] font-black uppercase text-slate-700">{user.username}</div>
+      <div className="text-[9px] font-bold text-accent uppercase tracking-tighter">{user.role}</div>
+    </div>
+
+    {/* Avatar nhỏ - Không có nút đổi ảnh ở đây để tránh lỗi lơ lửng */}
+    <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-xs overflow-hidden shadow-sm">
+      {user.avatar ? (
+        <img src={user.avatar} className="w-full h-full object-cover" alt="Avatar" />
+      ) : (
+        <span>{user.username.slice(0, 2).toUpperCase()}</span>
+      )}
+    </div>
+  </div>
+</header>
         )}
 
         <main className="flex-1 overflow-hidden relative">
