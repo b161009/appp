@@ -57,7 +57,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loginRole, setLoginRole] = useState<'initial' | 'admin' | 'user'>('initial');
   const [isRegistering, setIsRegistering] = useState(false);
-  const [archiveFile, setArchiveFile] = useState<File | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -71,7 +70,9 @@ export default function App() {
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
   const [modalTitle, setModalTitle] = useState('');
   const [modalDocId, setModalDocId] = useState('');
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [archiveFile, setArchiveFile] = useState<File | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [avatarInputRef, setAvatarInputRef] = useState<HTMLInputElement | null>(null);
 
@@ -381,15 +382,17 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
 
 
- const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   if (!user) return;
 
-    if (!imagePreview && !archiveFile) {
+  if (!imagePreview && !archiveFile) {
     alert("Chọn ảnh hoặc file nén để tải lên!");
     return;
   }
 
+  setLoading(true);
+  try {
     const fd = new FormData(e.currentTarget);
     const newDoc = {
       title: fd.get('title')?.toString() || 'Tài liệu không tên',
@@ -403,32 +406,24 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       status: user.role === 'admin' ? 'approved' : 'pending',
       createdAt: new Date().toISOString(),
       viewCount: 0,
-      fileContent: imagePreview ? imagePreview : null,
-      archiveName: archiveFile ? archiveFile.name : null, 
-      archiveContent: archiveFile ? "Base64_hoặc_Blob_của_file" : null
+ fileContent: imagePreview ? imagePreview : null,
+      archiveName: archiveFile ? archiveFile.name : null, // Lưu tên file nén
     };
-setImagePreview(null);
-    setArchiveFile(null)
 
-// Thông báo tùy theo quyền hạn
-if (user.role === 'admin') {
-  alert(" Quốc Bảo đẹp trai quá nên bài viết tự động được duyệt! ");
-} else {
-  alert("✅ Tải lên thành công! Tài liệu của bạn sẽ được xét duyệt trong thời gian sớm nhất.");
-}
-    try {       await addDoc(collection(db, "documents"), newDoc);
-       e.currentTarget.reset();
+    await addDoc(collection(db, "documents"), newDoc);
 
-     setView('home'); // Quay về trang chủ
-      setImagePreview(null);
-      setView('vault');
-    } catch (err) {
-      alert("Lỗi tải lên. Ảnh có thể quá lớn.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 🔥 GIỜ THÌ RESET ĐƯỢC RỒI VÌ ĐÃ CÙNG FILE App.tsx
+    setImagePreview(null);
+    setArchiveFile(null); 
+
+    alert("Đăng bài thành công!");
+    setView('home');
+  } catch (error) {
+    alert("Lỗi rồi ní!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleApproveDocument = async (docId: string) => {
     try {
