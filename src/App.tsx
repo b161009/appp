@@ -399,7 +399,8 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       year: fd.get('year')?.toString() || '2024-2025',
       school: fd.get('school')?.toString() || 'THPT Thái Hòa',
       authorId: user.id,
-      status: 'pending',
+      authorName: user.username,
+      status: user.role === 'admin' ? 'approved' : 'pending',
       createdAt: new Date().toISOString(),
       viewCount: 0,
       fileContent: imagePreview  // Lưu ảnh Base64 vào Firestore
