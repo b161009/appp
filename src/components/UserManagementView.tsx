@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Ban, MessageSquareOff, Eye, ShieldCheck, UserX } from 'lucide-react';
+import { Search, Ban, MessageSquareOff, Eye, ShieldCheck, UserX, Award } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Button, Card } from './UI';
@@ -8,9 +8,10 @@ import type { User } from '../types';
 interface UserManagementProps {
   currentUser: User | null;
   users: User[];
+  onOpenTagStore?: () => void;
 }
 
-const UserManagementView: React.FC<UserManagementProps> = ({ currentUser, users }) => {
+const UserManagementView: React.FC<UserManagementProps> = ({ currentUser, users, onOpenTagStore }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -43,19 +44,32 @@ const UserManagementView: React.FC<UserManagementProps> = ({ currentUser, users 
           Quản lý tài khoản ({users.length})
         </h3>
         
-        {/* Thanh tìm kiếm khi đã mở rộng */}
-        {isExpanded && (
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Tìm nickname..."
-              className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-accent/20"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Nút truy cập kho thẻ */}
+          {onOpenTagStore && (
+            <button 
+              onClick={onOpenTagStore}
+              title="Kho thẻ danh hiệu"
+              className="p-2 rounded-lg border bg-white border-slate-200 text-slate-400 hover:text-accent transition-all"
+            >
+              <Award className="w-4 h-4" />
+            </button>
+          )}
+          
+          {/* Thanh tìm kiếm khi đã mở rộng */}
+          {isExpanded && (
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input 
+                type="text"
+                placeholder="Tìm nickname..."
+                className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-accent/20"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="divide-y divide-slate-100">

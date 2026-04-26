@@ -191,8 +191,8 @@ return (
     )}
   </div>
 
-  {/* Chỉ Admin mới thấy nút "Đổi ảnh" */}
-  {user?.role === 'admin' && (
+  {/* Tất cả user đều thấy nút "Đổi ảnh" (Admin và User thường) */}
+  {(
     <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
       <Upload className="w-5 h-5 mb-1" />
       <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
