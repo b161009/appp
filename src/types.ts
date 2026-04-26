@@ -1,3 +1,8 @@
+import { 
+  Crown, Ban, TrendingUp, PlusCircle, 
+  User, GraduationCap, School, Users, 
+  History, Sparkles, Ghost 
+} from 'lucide-react';
 // Định nghĩa kiểu dữ liệu chung sử dụng trong ứng dụng
 export interface Document {
   id: string;
@@ -110,12 +115,44 @@ export interface User {
   tag?: string;       // Thẻ tên người dùng
 }
 
-// Danh sách thẻ có sẵn
 export const USER_TAGS = [
-  { id: 'hocsinh', name: 'Học sinh', color: 'bg-blue-500/20 text-blue-600 border-blue-500/30' },
-  { id: 'sinhvien', name: 'Sinh viên', color: 'bg-green-500/20 text-green-600 border-green-500/30' },
-  { id: 'giaovien', name: 'Giáo viên', color: 'bg-purple-500/20 text-purple-600 border-purple-500/30' },
-  { id: 'phuhuynh', name: 'Phụ huynh', color: 'bg-orange-500/20 text-orange-600 border-orange-500/30' },
-  { id: 'cuusinh', name: 'Cựu sinh', color: 'bg-amber-500/20 text-amber-600 border-amber-500/30' },
-  { id: 'troly', name: 'Trợ lý', color: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30' },
-];
+{ 
+    id: 'admin', 
+    name: 'Quản trị viên', 
+    color: 'bg-gradient-to-r from-amber-400 to-yellow-600 text-white border-yellow-300 shadow-yellow-500/20',
+    icon: Crown,
+    special: 'animate-pulse' // Hiệu ứng nhấp nháy cho QTV
+  },
+  { 
+    id: 'god', 
+    name: 'Đấng', 
+    color: 'bg-red-600 text-white border-red-400 shadow-red-500/40',
+    icon: Ghost,
+    special: 'animate-bounce shadow-[0_0_15px_rgba(220,38,38,0.5)]' // Hiệu ứng lấp lánh & nhảy
+  },
+  { 
+    id: 'none', 
+    name: 'None', 
+    color: 'bg-slate-100 text-slate-400 border-slate-200', 
+    icon: Ban 
+  },
+
+  // --- THẺ BIỂU TƯỢNG (Chỉ hiện Icon hoặc Icon + Tên nhỏ) ---
+  { 
+    id: 'contributor', 
+    name: 'Người đóng góp', 
+    color: 'bg-blue-500/20 text-blue-600 border-blue-500/30', 
+    icon: TrendingUp 
+  },
+  { 
+    id: 'helper', 
+    name: 'Người giúp đỡ', 
+    color: 'bg-green-500/20 text-green-600 border-green-500/30', 
+    icon: PlusCircle 
+  },
+  { 
+    id: 'banned', 
+    name: 'Bị cấm', 
+    color: 'bg-red-500/10 text-red-500 border-red-500/20', 
+    icon: Ban 
+  }];

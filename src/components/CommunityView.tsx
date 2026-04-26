@@ -153,10 +153,9 @@ const CommunityView: React.FC<CommunityViewProps> = ({
               {/* NÚT CHỌN THẺ */}
               {user && handleUpdateTag && (
                 <TagSelector
-                  currentTag={user.tag}
-                  onSelectTag={(tag) => handleUpdateTag(user.id, tag)}
-                  role={user.role}
-                />
+  user={user} // Truyền object user thay vì currentTag
+  onSelectTag={(tagId) => handleUpdateTag(user.id, tagId)}
+/>
               )}
             </div>
             
