@@ -89,17 +89,25 @@ const handleUpdateProfile = async () => {
   }
 }
 useEffect(() => {
-  // Chỉ tự động cấp thẻ Admin tại trang cá nhân để tránh vòng lặp spam ở Community
+  // Chỉ tự động cấp thẻ Admin tại trang cá nhân để tránh vòng lặp spam
+  // Kiểm tra xem đã cập nhật thẻ chưa để tránh spam
   const autoAssignAdminTag = async () => {
-    // Thêm kiểm tra handleUpdateTag tồn tại ở đây
     if (user?.role === 'admin' && !user?.tag && handleUpdateTag) {
-      await handleUpdateTag(user.id, 'admin');
+      // Kiểm tra xem tag hiện tại có phải là 'admin' không trước khi cập nhật
+      // Để tránh gọi API liên tục khi không cần thiết
+      try {
+        await handleUpdateTag(user.id, 'admin');
+      } catch (e) {
+        console.error("Lỗi cấp thẻ admin:", e);
+      }
     }
   };
  
-  
-  autoAssignAdminTag();
-}, [user?.role, user?.tag]); // Chỉ chạy lại nếu role hoặc tag thay đổi
+  // Chỉ chạy một lần khi component mount với user admin chưa có tag
+  if (user?.role === 'admin' && !user?.tag && handleUpdateTag) {
+    autoAssignAdminTag();
+  }
+}, []); // Empty dependency array - chỉ chạy một lần khi mount
 // 🔐 ĐỔI MẬT KHẨU (FIREBASE REAL)
 const handleChangePassword = async () => {
 
@@ -192,18 +200,16 @@ return (
   </div>
 
   {/* Tất cả user đều thấy nút "Đổi ảnh" (Admin và User thường) */}
-  {(
-    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
-      <Upload className="w-5 h-5 mb-1" />
-      <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
-      <input 
-        type="file" 
-        className="hidden" 
-        accept="image/*" 
-        onChange={onFileChange}
-      />
-    </label>
-  )}
+  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
+    <Upload className="w-5 h-5 mb-1" />
+    <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>
+    <input 
+      type="file" 
+      className="hidden" 
+      accept="image/*" 
+      onChange={onFileChange}
+    />
+  </label>
 </div>
 
             <div>
