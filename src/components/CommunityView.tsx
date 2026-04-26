@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { User, Post } from '../types';
 import { Button, Card, Badge } from './UI';
 import { cn } from '../lib/utils';
+import { TagBadge, TagSelector } from './TagBadge';
 
 interface CommunityViewProps {
   user: User | null;
@@ -26,13 +27,30 @@ interface CommunityViewProps {
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   imagePreview: string | null;
   setImagePreview: (s: string | null) => void;
+  handleUpdateTag?: (userId: string, tag: string) => void;
 }
 
 const CommunityView: React.FC<CommunityViewProps> = ({
   user, posts, loading, onlineUsers, users, 
   handleLikePost, handleDeletePost, handlePostSubmit, handleReportPost,
-  handleImageUpload, imagePreview, setImagePreview
-}) => {    const [isAnonymous, setIsAnonymous] = React.useState(false);
+  handleImageUpload, imagePreview, setImagePreview, handleReplySubmit, handleUpdateTag
+}) => {    
+  const [isAnonymous, setIsAnonymous] = React.useState(false);
+  const [expandedPost, setExpandedPost] = React.useState<string | null>(null);
+  const [commentText, setCommentText] = React.useState<Record<string, string>>({});
+  
+  const handleToggleComments = (postId: string) => {
+    setExpandedPost(expandedPost === postId ? null : postId);
+  };
+  
+  const handleSubmitComment = (postId: string) => {
+    const content = commentText[postId];
+    if (content?.trim()) {
+      handleReplySubmit(postId, content);
+      setCommentText(prev => ({ ...prev, [postId]: '' }));
+    }
+  };
+  
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 bg-[#F8FAFC] min-h-screen">
       
@@ -131,6 +149,15 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                 <div className={cn("w-1.5 h-1.5 rounded-full", isAnonymous ? "bg-emerald-400 animate-pulse" : "bg-slate-300")} />
                 <span className="text-[10px] font-black uppercase">Ẩn danh</span>
               </button>
+
+              {/* NÚT CHỌN THẺ */}
+              {user && handleUpdateTag && (
+                <TagSelector
+                  currentTag={user.tag}
+                  onSelectTag={(tag) => handleUpdateTag(user.id, tag)}
+                  role={user.role}
+                />
+              )}
             </div>
             
             <Button 
@@ -180,8 +207,12 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                              {postAuthor?.username || `Thành viên ẩn danh - ${user?.anonymousId || '0000'}`}
+                              {post.isAnonymous 
+                                ? `Thành viên ẩn danh - ${post.authorAnonymousId || 'ANON'}` 
+                                : (postAuthor?.username || 'Người dùng')}
                             </span>
+                            {/* Hiển thị thẻ người đăng */}
+                            <TagBadge tag={postAuthor?.tag} role={postAuthor?.role} size="sm" />
                             {postAuthor?.role === 'admin' && (
                               <Badge className="bg-accent/10 text-accent border-none text-[8px] font-black px-2 py-0.5 rounded-md">ADMIN</Badge>
                             )}
@@ -249,11 +280,67 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                         {post.likedBy?.length || 0} Thích
                       </button>
 
-                      <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:border-accent hover:text-accent transition-all active:scale-90">
+                      <button 
+                        onClick={() => handleToggleComments(post.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:border-accent hover:text-accent transition-all active:scale-90"
+                      >
                         <MessageSquare className="w-4 h-4" />
-                        Thảo luận
+                        {post.replies?.length || 0} Bình luận
                       </button>
                     </div>
+                    
+                    {/* Comment Section */}
+                    {expandedPost === post.id && (
+                      <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 space-y-3">
+                        {/* Danh sách bình luận */}
+                        {post.replies && post.replies.length > 0 ? (
+                          <div className="space-y-3 max-h-64 overflow-y-auto">
+                            {post.replies.map((reply, idx) => {
+                              const replyAuthor = users.find(u => u.id === reply.authorId);
+                              return (
+                                <div key={idx} className="flex gap-3 p-3 bg-white rounded-xl border border-slate-100">
+                                  <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center font-black text-accent text-[10px] flex-shrink-0">
+                                    {replyAuthor?.username?.slice(0, 2).toUpperCase() || 'HS'}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-black text-slate-700">
+                                        {replyAuthor?.username || 'Người dùng'}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400">
+                                        {new Date(reply.createdAt).toLocaleDateString('vi-VN')}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-600 mt-1">{reply.content}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 text-center py-2">Chưa có bình luận nào</p>
+                        )}
+                        
+                        {/* Input bình luận */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Viết bình luận..."
+                            value={commentText[post.id] || ''}
+                            onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment(post.id)}
+                            className="flex-1 h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-accent/20"
+                          />
+                          <button
+                            onClick={() => handleSubmitComment(post.id)}
+                            disabled={!commentText[post.id]?.trim()}
+                            className="px-4 h-10 bg-accent text-white rounded-xl font-black text-[10px] uppercase disabled:opacity-50"
+                          >
+                            Gửi
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </Card>
                 </motion.div>
               );

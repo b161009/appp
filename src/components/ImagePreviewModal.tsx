@@ -58,15 +58,19 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    if (!imageUrl) return;
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `TaiLieu_${title.replace(/\s+/g, '_')}.png`;
-    link.click();
-  };
-
-  if (!isOpen || !imageUrl) return null;
+  const handleDownload = (doc:any) => {
+    if (!doc || !doc.archiveData) {
+    alert("Không tìm thấy dữ liệu file nén!");
+    return;
+  }
+  
+  const link = document.createElement('a');
+  link.href = doc.archiveData;
+  link.download = doc.archiveName || 'tai-lieu.zip';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   return (
     // Overlay - click ngoài để đóng
@@ -146,19 +150,21 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           />
 
           <div className="relative p-6 flex items-center justify-center w-full h-full overflow-auto">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="object-contain shadow-2xl rounded-lg transition-all duration-500"
-              style={{
-                transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                filter: showAnswer ? 'none' : 'blur(20px)',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                transformOrigin: 'center center'
-              }}
-              draggable={false}
-            />
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt={title}
+                className="object-contain shadow-2xl rounded-lg transition-all duration-500"
+                style={{
+                  transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                  filter: showAnswer ? 'none' : 'blur(20px)',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  transformOrigin: 'center center'
+                }}
+                draggable={false}
+              />
+            )}
 
             {/* Lớp mờ khi chưa xem đáp án */}
             {!showAnswer && (
@@ -256,7 +262,19 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
               {/* Nút tải về */}
               <button
-                onClick={handleDownload}
+                onClick={() => {
+                  // Lấy dữ liệu từ props hoặc tìm trong documents
+                  if (docId && imageUrl) {
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = title || 'tai-lieu.jpg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  } else {
+                    alert("Không tìm thấy dữ liệu file!");
+                  }
+                }}
                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />

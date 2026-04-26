@@ -34,11 +34,13 @@ export interface Post {
   id: string;
   content: string;
   authorId: string;
+  authorName?: string;
+  authorAnonymousId?: string;
   isAnonymous: boolean;
   imageUrl?: string;
-  reports: Report[];
-  replies: Reply[];
-  likedBy: string[]; // Danh sách ID người dùng đã thích
+  reports?: Report[];
+  replies?: Reply[];
+  likedBy?: string[]; // Danh sách ID người dùng đã thích
   createdAt: string;
   commentCount?: number;
 }
@@ -105,4 +107,15 @@ export interface User {
   bannedUntil?: string;
   isBlocked: boolean; // Chặn hoàn toàn không cho đăng nhập
   isMuted: boolean;   // Cấm đăng bài & bình luận
+  tag?: string;       // Thẻ tên người dùng
 }
+
+// Danh sách thẻ có sẵn
+export const USER_TAGS = [
+  { id: 'hocsinh', name: 'Học sinh', color: 'bg-blue-500/20 text-blue-600 border-blue-500/30' },
+  { id: 'sinhvien', name: 'Sinh viên', color: 'bg-green-500/20 text-green-600 border-green-500/30' },
+  { id: 'giaovien', name: 'Giáo viên', color: 'bg-purple-500/20 text-purple-600 border-purple-500/30' },
+  { id: 'phuhuynh', name: 'Phụ huynh', color: 'bg-orange-500/20 text-orange-600 border-orange-500/30' },
+  { id: 'cuusinh', name: 'Cựu sinh', color: 'bg-amber-500/20 text-amber-600 border-amber-500/30' },
+  { id: 'troly', name: 'Trợ lý', color: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30' },
+];

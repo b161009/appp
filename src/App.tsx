@@ -93,6 +93,8 @@ export default function App() {
       if (isRegistering) {
         if (password !== confirmPassword) throw new Error("Mật khẩu không khớp!");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Tạo mã ẩn danh ngẫu nhiên cho user
+        const anonymousId = Math.random().toString(36).substring(2, 8).toUpperCase();
         await setDoc(fDoc(db, "users", userCredential.user.uid), {
           id: userCredential.user.uid,
           username: nickname || email.split('@')[0],
@@ -101,6 +103,7 @@ export default function App() {
           isBlocked: false,
           isMuted: false,
           bookmarks: [],
+          anonymousId: anonymousId,
           createdAt: new Date().toISOString()
         });
         setIsRegistering(false);
@@ -225,6 +228,23 @@ const handleUpdateAvatar = async (userId: string, newAvatarUrl: string) => {
   }
 };
 
+// --- HÀM CẬP NHẬT THẺ NGƯỜI DÙNG ---
+const handleUpdateTag = async (userId: string, newTag: string) => {
+  try {
+    const userRef = fDoc(db, "users", userId);
+    await updateDoc(userRef, {
+      tag: newTag
+    });
+    // Cập nhật state để hiển thị ngay
+    if (user && user.id === userId) {
+      setUser({ ...user, tag: newTag });
+    }
+  } catch (error) {
+    console.error("Lỗi cập nhật thẻ:", error);
+    alert("Không thể cập nhật thẻ.");
+  }
+};
+
 // --- HÀM XỬ LÝ ĐỔI ẢNH ĐẠI DIỆN TỪ HEADER ---
 const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
@@ -279,11 +299,12 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         content: content,
         authorId: user.id,
         authorName: user.username,
+        authorAnonymousId: isAnonymous ? user.anonymousId : null,
         isAnonymous: isAnonymous,
         imageUrl: imagePreview || null,
         createdAt: new Date().toISOString(),
         likedBy: [],
-        comments: []
+        replies: []
       });
       setImagePreview(null);
       e.currentTarget.reset();
@@ -364,7 +385,7 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         content,
         createdAt: new Date().toISOString()
       };
-      await updateDoc(postRef, { comments: arrayUnion(newReply) });
+      await updateDoc(postRef, { replies: arrayUnion(newReply) });
       setReplyingTo(null);
     } catch (err) {
       console.error("Lỗi trả lời:", err);
@@ -565,6 +586,7 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             replyingTo={replyingTo}
             setReplyingTo={setReplyingTo}
             handleReplySubmit={handleReplySubmit}
+            handleUpdateTag={handleUpdateTag}
           />
         );
 
@@ -630,6 +652,7 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             reports={reports}
             handleAppealReport={() => {}}
             onUpdateAvatar={handleUpdateAvatar}
+            handleUpdateTag={handleUpdateTag}
           />
         );
 

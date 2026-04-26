@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 // 🔥 Firebase
 import { auth } from "../firebase";
 import { updatePassword } from "firebase/auth";
+import { TagBadge, TagSelector } from './TagBadge';
 
 
 
@@ -18,6 +19,7 @@ interface AccountViewProps {
   reports: Report[];
   handleAppealReport: (id: string) => void;
   onUpdateAvatar: (uid: string, url: string) => Promise<void>;
+  handleUpdateTag?: (userId: string, tag: string) => void;
 }
 
 const AccountView: React.FC<AccountViewProps> = ({
@@ -28,8 +30,8 @@ const AccountView: React.FC<AccountViewProps> = ({
   setLoading,
   reports,
   handleAppealReport,
-  onUpdateAvatar
-  
+  onUpdateAvatar,
+  handleUpdateTag
 }) => {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -194,7 +196,11 @@ return (
 </div>
 
             <div>
-              <div className="text-lg font-bold">{user.username}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-lg font-bold">{user.username}</div>
+                {/* Hiển thị thẻ người dùng */}
+                <TagBadge tag={user.tag} role={user.role} size="md" />
+              </div>
               <div className="text-sm opacity-60">
                 {user.role === 'admin' ? 'Quản trị viên' : 'Học sinh'}
               </div>
@@ -205,6 +211,17 @@ return (
             <div>Email: {user.email || "Chưa có"}</div>
             <div>Trường: {user.school || "Chưa có"}</div>
             <div>Lớp: {user.grade || "Chưa có"}</div>
+            {/* Chọn thẻ */}
+            {handleUpdateTag && (
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-xs font-medium text-slate-500">Thẻ:</span>
+                <TagSelector
+                  currentTag={user.tag}
+                  onSelectTag={(tag) => handleUpdateTag(user.id, tag)}
+                  role={user.role}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
