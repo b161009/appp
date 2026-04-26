@@ -799,16 +799,18 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
         </main>
       </div>
 
-      {/* ===== IMAGE PREVIEW MODAL TOÀN CỤC ===== */}
-      {/* Được mount ở cấp cao nhất, hoạt động trên tất cả các view */}
-      <ImagePreviewModal
-        isOpen={modalOpen}
-        onClose={closeImagePreview}
-        imageUrl={modalImageUrl}
-        title={modalTitle}
-        docId={modalDocId}
-        onReport={handleReportDocument}
-      />
+    {/* ===== IMAGE PREVIEW MODAL TOÀN CỤC ===== */}
+      {/* Chỉ render Modal khi modalOpen là true VÀ có imageUrl để tránh bảng trắng */}
+      {modalOpen && modalImageUrl && (
+        <ImagePreviewModal
+          isOpen={modalOpen}
+          onClose={closeImagePreview}
+          imageUrl={modalImageUrl}
+          title={modalTitle}
+          docId={modalDocId}
+          onReport={handleReportDocument}
+        />
+      )}
     </div>
   );
 };
