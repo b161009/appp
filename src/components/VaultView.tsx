@@ -167,8 +167,8 @@ const VaultView: React.FC<VaultViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-      // VaultView.tsx - Phần 2: Danh sách tài liệu & Footer
-      {/* BẢNG DANH SÁCH TÀI LIỆU */}
+      CLB Tin học 
+      {/* DANH SÁCH TÀI LIỆU */}
       <Card className="flex-1 overflow-hidden border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl flex flex-col">
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[800px]">

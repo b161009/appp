@@ -61,7 +61,7 @@ export const TagBadge: React.FC<TagBadgeProps> = ({ tag, role, size = 'sm', onCl
 
 // 2. COMPONENT POPUP CHỌN THẺ (TagSelector)
 interface TagSelectorProps {
-  user: any; 
+  user: any; // Nhận object user để check user.role, user.tag và user.unlockedTags
   onSelectTag: (tagId: string) => void;
 }
 
@@ -70,22 +70,27 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ user, onSelectTag }) =
 
   // LOGIC TỰ ĐỘNG ĐEO THẺ QTV LẦN ĐẦU CHO ADMIN
   useEffect(() => {
-    if (user?.role === 'admin' && !user?.tag) {
-      // Nếu là admin mà trong database chưa có tag, tự động set là 'admin'
+    // Chỉ chạy khi user đã load xong (không null) và thỏa mãn điều kiện
+    if (user && user.role === 'admin' && !user.tag) {
       onSelectTag('admin');
     }
-  }, [user?.role, user?.tag]);
+  }, [user?.role, user?.tag, onSelectTag]); // Thêm đầy đủ dependency
 
   // Danh sách thẻ hiển thị trong kho:
   // - Luôn có 'none'
   // - Nếu là admin: Luôn có thẻ 'admin'
   // - Các thẻ user đã mở khóa (unlockedTags)
-  const availableTags = USER_TAGS.filter(t => 
-    t.id === 'none' || 
-    (user?.role === 'admin' && t.id === 'admin') ||
-    (user?.unlockedTags && user.unlockedTags.includes(t.id))
-  );
+  const availableTags = USER_TAGS.filter(t => {
+  // 1. Thẻ 'none' (Dấu cấm): Ai cũng có để có thể gỡ danh hiệu
+  if (t.id === 'none') return true;
 
+  // 2. Thẻ 'admin' (QTV): Chỉ Admin mới thấy trong kho đồ (mặc định có sẵn)
+  if (user?.role === 'admin' && t.id === 'admin') return true;
+
+  // 3. Các thẻ khác: Phải nằm trong mảng unlockedTags (được cấp tự động sau này)
+  // Nếu user.unlockedTags chưa có gì (rỗng), họ sẽ không thấy các thẻ này
+  return user?.unlockedTags?.includes(t.id);
+});
   return (
     <div className="relative flex flex-col items-center">
       <TagBadge 
