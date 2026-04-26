@@ -113,9 +113,25 @@ export interface User {
   isBlocked: boolean; // Chặn hoàn toàn không cho đăng nhập
   isMuted: boolean;   // Cấm đăng bài & bình luận
   tag?: string;       // Thẻ tên người dùng
+  displayName?: string; // Tên hiển thị tùy chỉnh
+  // TypeScript sẽ hiểu các trường tùy chỉnh này
 }
 
+export interface AppUser {
+  id: string;
+  displayName: string;
+  email: string;
+  photoURL?: string;
+  role: 'admin' | 'user'; // Phân quyền rõ ràng
+  tag?: string;           // ID của thẻ đang đeo
+  unlockedTags: string[]; // Kho đồ: danh sách ID các thẻ đã sở hữu
+}
 
+export interface UserTag {
+  id: string;
+  name: string;
+  color: string;
+}
 export const USER_TAGS = [
 { 
     id: 'admin', 

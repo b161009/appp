@@ -88,7 +88,18 @@ const handleUpdateProfile = async () => {
     setLoading(false)
   }
 }
-
+useEffect(() => {
+  // Chỉ tự động cấp thẻ Admin tại trang cá nhân để tránh vòng lặp spam ở Community
+  const autoAssignAdminTag = async () => {
+    // Thêm kiểm tra handleUpdateTag tồn tại ở đây
+    if (user?.role === 'admin' && !user?.tag && handleUpdateTag) {
+      await handleUpdateTag(user.id, 'admin');
+    }
+  };
+ 
+  
+  autoAssignAdminTag();
+}, [user?.role, user?.tag]); // Chỉ chạy lại nếu role hoặc tag thay đổi
 // 🔐 ĐỔI MẬT KHẨU (FIREBASE REAL)
 const handleChangePassword = async () => {
 
