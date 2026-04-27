@@ -33,6 +33,7 @@ interface VaultViewProps {
   handleBookmark: (docId: string) => void;
   setView: (v: any) => void;
   handleDeleteDocument?: (id: string) => void;
+  handleDownload?: (doc: Document) => void;
 }
 
 const VaultView: React.FC<VaultViewProps> = ({
@@ -43,7 +44,8 @@ const VaultView: React.FC<VaultViewProps> = ({
   handleBookmark,
   setView,
   onPreviewImage,
-  handleDeleteDocument
+  handleDeleteDocument,
+  handleDownload
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'bookmarks'>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
@@ -278,6 +280,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                         </button>
 
                         <button 
+                          onClick={() => handleDownload?.(doc)}
                           className="p-2.5 bg-white text-slate-300 border border-slate-100 rounded-xl hover:text-accent hover:border-accent/30 hover:bg-accent/5 transition-all shadow-sm active:scale-90"
                           title="Tải xuống"
                         >

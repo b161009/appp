@@ -644,6 +644,7 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             handleBookmark={handleBookmark}
             setView={setView as any}
             handleDeleteDocument={handleDeleteDocument}
+            handleDownload={handleDownload}
             // Truyền hàm mở modal toàn cục
             onPreviewImage={openImagePreview}
           />

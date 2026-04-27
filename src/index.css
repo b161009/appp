@@ -238,6 +238,27 @@
     font-size: 10px !important;
   }
 
+  /* ---- VaultView: Action buttons always visible on mobile ---- */
+  @media (max-width: 768px) {
+    /* Table action buttons - always show */
+    .group:hover .opacity-0, 
+    tr:hover .opacity-0 {
+      opacity: 1 !important;
+    }
+    
+    /* Force show action buttons on mobile */
+    .flex.justify-end.items-center.gap-1 {
+      opacity: 1 !important;
+    }
+    
+    /* Make action buttons more visible on mobile */
+    .flex.justify-end.items-center.gap-1 button {
+      opacity: 1 !important;
+      background: white !important;
+      border-color: #e2e8f0 !important;
+    }
+  }
+
   /* ---- UploadView ---- */
   .grid.grid-cols-1.md\:grid-cols-3 {
     grid-template-columns: 1fr !important;
