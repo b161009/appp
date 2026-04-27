@@ -398,6 +398,8 @@ return (
                 handleUpdateTag(user.id, tag);
               }
             }}
+            role={user?.role}
+            unlockedTags={user?.unlockedTags}
           />
         </div>
       </Card>

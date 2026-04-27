@@ -55,3 +55,208 @@
   background-size: 15px 15px;
 }
 
+/* ===================== MOBILE RESPONSIVE ===================== */
+
+/* Mobile nhỏ (max 375px) */
+@media (max-width: 375px) {
+  body {
+    font-size: 12px;
+  }
+  
+  .sidebar {
+    width: 60px !important;
+  }
+  
+  .sidebar-item span {
+    display: none;
+  }
+  
+  .sidebar-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+}
+
+/* Mobile thông thường (max 640px) */
+@media (max-width: 640px) {
+  /* Ẩn sidebar trên mobile, hiện bottom nav */
+  .sidebar {
+    display: none !important;
+  }
+  
+  /* Bottom navigation cho mobile */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    padding: 8px 0;
+    z-index: 50;
+    justify-content: space-around;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  }
+  
+  /* Main content full width on mobile */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 12px !important;
+    padding-bottom: 80px !important;
+  }
+  
+  /* Cards full width */
+  .card-theme {
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  
+  /* Grid 1 cột trên mobile */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Hide desktop elements on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Padding nhỏ hơn cho buttons */
+  .btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  
+  /* Form inputs full width */
+  input, select, textarea {
+    font-size: 14px !important; /* Prevent zoom on iOS */
+  }
+  
+  /* Modal full screen on mobile */
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+  }
+  
+  /* Header compact on mobile */
+  .header {
+    padding: 12px !important;
+  }
+  
+  /* Image grid 2 cột */
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  
+  /* Post content */
+  .post-content {
+    padding: 12px !important;
+  }
+  
+  /* Avatar nhỏ hơn */
+  .avatar-sm {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .avatar-md {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .avatar-lg {
+    width: 56px !important;
+    height: 56px !important;
+  }
+}
+
+/* Tablet (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .sidebar {
+    width: 180px !important;
+  }
+  
+  .main-content {
+    margin-left: 180px !important;
+  }
+  
+  .grid-cols-4 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Desktop (trên 1024px) */
+@media (min-width: 1025px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 640px) {
+  button, 
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Tăng khoảng cách touch */
+  a, button {
+    padding: 8px;
+    margin: 4px 0;
+  }
+  
+  /* List items bigger touch area */
+  .list-item {
+    padding: 12px 16px;
+  }
+}
+
+/* Smooth scrolling */
+@media (max-width: 640px) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Horizontal scroll for tables */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Safe area inset for notched phones */
+@supports (padding: max(0px)) {
+  @media (max-width: 640px) {
+    .pb-safe {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    
+    .pt-safe {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+    
+    .pl-safe {
+      padding-left: max(12px, env(safe-area-inset-left));
+    }
+    
+    .pr-safe {
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
+  }
+}
+

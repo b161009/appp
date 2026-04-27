@@ -232,9 +232,27 @@ const handleUpdateAvatar = async (userId: string, newAvatarUrl: string) => {
 const handleUpdateTag = async (userId: string, newTag: string) => {
   try {
     const userRef = fDoc(db, "users", userId);
-    await updateDoc(userRef, {
-      tag: newTag
-    });
+    const updateData: any = { tag: newTag };
+    
+    // Nếu chọn thẻ banned mà user không bị block thì không cho phép
+    if (newTag === 'banned') {
+      const targetUser = users.find(u => u.id === userId);
+      if (!targetUser?.isBlocked) {
+        alert("Thẻ cấm chỉ dành cho tài khoản bị chặn!");
+        return;
+      }
+    }
+    
+    // Nếu bỏ chọn banned (đặt none) nhưng user đang bị block thì không cho phép
+    if (newTag === 'none') {
+      const targetUser = users.find(u => u.id === userId);
+      if (targetUser?.isBlocked) {
+        alert("Tài khoản đang bị chặn, không thể bỏ thẻ cấm!");
+        return;
+      }
+    }
+    
+    await updateDoc(userRef, updateData);
     // Cập nhật state để hiển thị ngay
     if (user && user.id === userId) {
       setUser({ ...user, tag: newTag });

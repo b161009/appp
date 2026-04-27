@@ -8,7 +8,6 @@ import type { User, Post } from '../types';
 import { Button, Card, Badge } from './UI';
 import { cn } from '../lib/utils';
 import { TagBadge, TagSelector } from './TagBadge';
-import { AppUser } from '../types';
 
 interface CommunityViewProps {
   user: User | null;
@@ -151,14 +150,15 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                 <span className="text-[10px] font-black uppercase">Ẩn danh</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                {!isAnonymous && (
-                  <>
-                    <span className="text-[10px] font-bold">{user?.displayName}</span>
-                    <TagBadge tag={user?.tag} role={user?.role} size="sm" />
-                  </>
-                )}
-              </div>
+              {/* NÚT CHỌN THẺ */}
+              {user && handleUpdateTag && (
+                <TagSelector
+                  currentTag={user.tag}
+                  onSelectTag={(tag) => handleUpdateTag(user.id, tag)}
+                  role={user.role}
+                  unlockedTags={user.unlockedTags}
+                />
+              )}
             </div>
             
             <Button 

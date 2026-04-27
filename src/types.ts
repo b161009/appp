@@ -112,64 +112,53 @@ export interface User {
   bannedUntil?: string;
   isBlocked: boolean; // Chặn hoàn toàn không cho đăng nhập
   isMuted: boolean;   // Cấm đăng bài & bình luận
-  tag?: string;       // Thẻ tên người dùng
+  tag?: string;       // Thẻ tên người dùng hiện tại
+  unlockedTags?: string[]; // Kho thẻ: danh sách ID các thẻ đã sở hữu
   displayName?: string; // Tên hiển thị tùy chỉnh
-  // TypeScript sẽ hiểu các trường tùy chỉnh này
 }
 
-export interface AppUser {
-  id: string;
-  displayName: string;
-  email: string;
-  photoURL?: string;
-  role: 'admin' | 'user'; // Phân quyền rõ ràng
-  tag?: string;           // ID của thẻ đang đeo
-  unlockedTags: string[]; // Kho đồ: danh sách ID các thẻ đã sở hữu
-}
-
-export interface UserTag {
-  id: string;
-  name: string;
-  color: string;
-}
+// Danh sách thẻ có sẵn
 export const USER_TAGS = [
-{ 
-    id: 'admin', 
-    name: 'Quản trị viên', 
-    color: 'bg-gradient-to-r from-amber-400 to-yellow-600 text-white border-yellow-300 shadow-yellow-500/20',
-    icon: Crown,
-    special: 'animate-pulse' // Hiệu ứng nhấp nháy cho QTV
+  // Thẻ text
+  { 
+    id: 'qtv', 
+    name: 'QTV', 
+    color: 'bg-gradient-to-r from-amber-400 to-yellow-600 text-white border-yellow-300',
+    icon: 'Crown',
+    special: 'animate-pulse shadow-lg shadow-amber-500/30',
+    type: 'text'
   },
   { 
-    id: 'god', 
+    id: 'dang', 
     name: 'Đấng', 
-    color: 'bg-red-600 text-white border-red-400 shadow-red-500/40',
-    icon: Ghost,
-    special: 'animate-bounce shadow-[0_0_15px_rgba(220,38,38,0.5)]' // Hiệu ứng lấp lánh & nhảy
+    color: 'bg-gradient-to-r from-red-500 to-red-700 text-white border-red-400',
+    icon: 'Sparkles',
+    special: 'animate-shine shadow-lg shadow-red-500/40',
+    type: 'text'
+  },
+  // Thẻ biểu tượng
+  { 
+    id: 'banned', 
+    name: '', 
+    color: 'bg-red-500/10 text-red-500 border-red-500',
+    icon: 'Ban',
+    special: '',
+    type: 'icon'
+  },
+  { 
+    id: 'contributor', 
+    name: '', 
+    color: 'bg-green-500/10 text-green-500 border-green-500',
+    icon: 'TrendingUp',
+    special: '',
+    type: 'icon'
   },
   { 
     id: 'none', 
-    name: 'None', 
-    color: 'bg-slate-100 text-slate-400 border-slate-200', 
-    icon: Ban 
+    name: '', 
+    color: 'bg-slate-100 text-slate-400 border-slate-300',
+    icon: 'Ban',
+    special: '',
+    type: 'icon'
   },
-
-  // --- THẺ BIỂU TƯỢNG (Chỉ hiện Icon hoặc Icon + Tên nhỏ) ---
-  { 
-    id: 'contributor', 
-    name: 'Người đóng góp', 
-    color: 'bg-blue-500/20 text-blue-600 border-blue-500/30', 
-    icon: TrendingUp 
-  },
-  { 
-    id: 'helper', 
-    name: 'Người giúp đỡ', 
-    color: 'bg-green-500/20 text-green-600 border-green-500/30', 
-    icon: PlusCircle 
-  },
-  { 
-    id: 'banned', 
-    name: 'Bị cấm', 
-    color: 'bg-red-500/10 text-red-500 border-red-500/20', 
-    icon: Ban 
-  }];
+];
