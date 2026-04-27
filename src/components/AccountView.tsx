@@ -90,11 +90,9 @@ const handleUpdateProfile = async () => {
 }
 useEffect(() => {
   // Chỉ tự động cấp thẻ Admin tại trang cá nhân để tránh vòng lặp spam
-  // Kiểm tra xem đã cập nhật thẻ chưa để tránh spam
+  // Chỉ chạy một lần khi user được load và là admin chưa có tag
   const autoAssignAdminTag = async () => {
-    if (user?.role === 'admin' && !user?.tag && handleUpdateTag) {
-      // Kiểm tra xem tag hiện tại có phải là 'admin' không trước khi cập nhật
-      // Để tránh gọi API liên tục khi không cần thiết
+    if (user && user.role === 'admin' && !user.tag && typeof handleUpdateTag === 'function') {
       try {
         await handleUpdateTag(user.id, 'admin');
       } catch (e) {
@@ -103,11 +101,11 @@ useEffect(() => {
     }
   };
  
-  // Chỉ chạy một lần khi component mount với user admin chưa có tag
-  if (user?.role === 'admin' && !user?.tag && handleUpdateTag) {
+  // Chỉ chạy khi user đã được load đầy đủ
+  if (user) {
     autoAssignAdminTag();
   }
-}, []); // Empty dependency array - chỉ chạy một lần khi mount
+}, [user?.id, user?.role, user?.tag]); // Chạy khi user thay đổi
 // 🔐 ĐỔI MẬT KHẨU (FIREBASE REAL)
 const handleChangePassword = async () => {
 
@@ -386,6 +384,23 @@ return (
         </div>
       </Card>
 
+
+      {/* 📜 TAG SELECTOR - Cho phép chọn thẻ */}
+      <Card title="Danh hiệu & Thẻ" className="shadow-md">
+        <div className="p-6">
+          <div className="text-sm opacity-70 mb-3">
+            Chọn thẻ danh hiệu để hiển thị bên cạnh tên của bạn:
+          </div>
+          <TagSelector 
+            currentTag={user?.tag} 
+            onSelectTag={(tag) => {
+              if (handleUpdateTag) {
+                handleUpdateTag(user.id, tag);
+              }
+            }}
+          />
+        </div>
+      </Card>
 
       {/* 📜 REPORT HISTORY */}
       {user.role === 'user' && (
