@@ -48,6 +48,7 @@ export interface Post {
   likedBy?: string[]; // Danh sách ID người dùng đã thích
   createdAt: string;
   commentCount?: number;
+  status?: "pending" | "approved"; // Trạng thái duyệt bài
 }
 
 export interface FriendRequest {

@@ -3,9 +3,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Biến màu chủ đạo và font chữ toàn cục */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  
   --color-bg: #f0f2f5;
   --color-sidebar: #1a237e;
   --color-text-main: #2c3e50;
@@ -16,247 +14,397 @@
 }
 
 @layer base {
-  /* Thiết lập kiểu nền, font chữ và độ mượt cho toàn bộ trang */
   body {
     @apply font-sans bg-bg text-text-main antialiased;
     font-size: 13px;
   }
 }
 
-
-/* Kiểu chung cho thẻ Card */
 .card-theme {
   @apply bg-white rounded-lg border border-border-theme shadow-sm overflow-hidden flex flex-col;
 }
 
-/* Tiêu đề của Card, hiển thị tên chức năng hoặc hành động */
 .card-header-theme {
   @apply px-4 py-3 bg-slate-50 border-b border-border-theme font-bold text-sm flex justify-between items-center;
 }
 
-/* Định dạng mục điều hướng sidebar */
 .sidebar-item {
   @apply px-5 py-3 text-[13px] cursor-pointer flex items-center transition-all opacity-80 border-l-4 border-transparent hover:bg-white/10 hover:opacity-100;
 }
 
-/* Trạng thái active của mục sidebar */
 .sidebar-item.active {
   @apply bg-white/10 opacity-100 border-l-4 border-white;
 }
 
-/* Nhãn nhóm điều hướng trong sidebar */
 .nav-label {
   @apply text-[10px] uppercase tracking-wider px-5 pt-5 pb-2 opacity-50 font-bold;
 }
 
-/* Nền họa tiết chấm để tăng chiều sâu giao diện */
 .bg-pattern {
   background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px);
   background-size: 15px 15px;
 }
 
-/* ===================== MOBILE RESPONSIVE ===================== */
+/* ===================== MOBILE BOTTOM NAV ===================== */
 
-/* Mobile nhỏ (max 375px) */
-@media (max-width: 375px) {
-  body {
-    font-size: 12px;
-  }
-  
-  .sidebar {
-    width: 60px !important;
-  }
-  
-  .sidebar-item span {
-    display: none;
-  }
-  
-  .sidebar-item {
-    justify-content: center;
-    padding: 12px 0;
-  }
+.mobile-bottom-nav {
+  display: none;
 }
 
-/* Mobile thông thường (max 640px) */
-@media (max-width: 640px) {
-  /* Ẩn sidebar trên mobile, hiện bottom nav */
-  .sidebar {
+/* ===================== MOBILE RESPONSIVE ===================== */
+
+@media (max-width: 768px) {
+
+  /* ---- Ẩn sidebar trên mobile ---- */
+  aside {
     display: none !important;
   }
-  
-  /* Bottom navigation cho mobile */
+
+  /* ---- Header mobile compact ---- */
+  header {
+    height: 56px !important;
+    padding: 0 16px !important;
+  }
+
+  header .w-\[400px\] {
+    width: 100% !important;
+    max-width: 220px;
+  }
+
+  /* ---- Main content no sidebar ---- */
+  .flex.h-screen > .flex-1 {
+    width: 100% !important;
+  }
+
+  /* ---- Bottom nav hiện ra ---- */
   .mobile-bottom-nav {
     display: flex !important;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    height: 64px;
     background: white;
     border-top: 1px solid #e2e8f0;
-    padding: 8px 0;
-    z-index: 50;
+    z-index: 100;
+    align-items: center;
     justify-content: space-around;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
-  
-  /* Main content full width on mobile */
-  .main-content {
-    margin-left: 0 !important;
-    padding: 12px !important;
-    padding-bottom: 80px !important;
+
+  .mobile-bottom-nav .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex: 1;
+    height: 100%;
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
   }
-  
-  /* Cards full width */
-  .card-theme {
-    border-radius: 12px;
-    margin-bottom: 12px;
+
+  .mobile-bottom-nav .nav-btn.active {
+    color: #2563eb;
   }
-  
-  /* Grid 1 cột trên mobile */
-  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
-    grid-template-columns: 1fr !important;
+
+  .mobile-bottom-nav .nav-btn svg {
+    width: 22px;
+    height: 22px;
   }
-  
-  /* Hide desktop elements on mobile */
-  .desktop-only {
-    display: none !important;
+
+  .mobile-bottom-nav .nav-btn.active svg {
+    stroke-width: 2.5;
   }
-  
-  /* Padding nhỏ hơn cho buttons */
-  .btn {
-    padding: 8px 12px;
-    font-size: 11px;
+
+  /* ---- Content phải nhường chỗ cho bottom nav ---- */
+  main .h-full {
+    padding-bottom: 72px;
   }
-  
-  /* Form inputs full width */
-  input, select, textarea {
-    font-size: 14px !important; /* Prevent zoom on iOS */
+
+  /* ---- Pages padding cho mobile ---- */
+  .p-8 { padding: 16px !important; }
+  .p-6 { padding: 14px !important; }
+  .p-5 { padding: 12px !important; }
+
+  /* ---- HomeView ---- */
+  /* Welcome banner */
+  .relative.overflow-hidden.bg-sidebar.rounded-3xl {
+    border-radius: 16px !important;
+    padding: 20px !important;
   }
-  
-  /* Modal full screen on mobile */
-  .modal-content {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    border-radius: 0 !important;
+
+  .relative.overflow-hidden.bg-sidebar.rounded-3xl h1 {
+    font-size: 20px !important;
+    line-height: 1.2;
   }
-  
-  /* Header compact on mobile */
-  .header {
-    padding: 12px !important;
+
+  .relative.overflow-hidden.bg-sidebar.rounded-3xl p {
+    font-size: 11px !important;
+    margin-top: 6px !important;
   }
-  
-  /* Image grid 2 cột */
-  .image-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+
+  .relative.overflow-hidden.bg-sidebar.rounded-3xl .flex.gap-3 {
+    margin-top: 16px !important;
+    flex-wrap: wrap;
     gap: 8px !important;
   }
-  
-  /* Post content */
-  .post-content {
+
+  .relative.overflow-hidden.bg-sidebar.rounded-3xl button {
+    padding: 10px 16px !important;
+    font-size: 10px !important;
+  }
+
+  /* Stats grid - 2 cột */
+  .grid.grid-cols-2.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .grid.grid-cols-2.md\:grid-cols-4 > div {
+    padding: 14px !important;
+  }
+
+  .grid.grid-cols-2.md\:grid-cols-4 .text-2xl {
+    font-size: 20px !important;
+  }
+
+  /* Home main grid - stack */
+  .grid.grid-cols-1.lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Hide online sidebar on mobile home */
+  .grid.grid-cols-1.lg\:grid-cols-3 > .space-y-6:last-child {
+    display: none;
+  }
+
+  /* ---- VaultView ---- */
+  .p-6.flex.flex-col.h-full.gap-6 {
     padding: 12px !important;
+    gap: 10px !important;
   }
-  
-  /* Avatar nhỏ hơn */
-  .avatar-sm {
-    width: 32px !important;
-    height: 32px !important;
-  }
-  
-  .avatar-md {
-    width: 40px !important;
-    height: 40px !important;
-  }
-  
-  .avatar-lg {
-    width: 56px !important;
-    height: 56px !important;
-  }
-}
 
-/* Tablet (641px - 1024px) */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .sidebar {
-    width: 180px !important;
+  /* Hide filter bar details, show compact version */
+  .grid.grid-cols-1.md\:grid-cols-4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
   }
-  
-  .main-content {
-    margin-left: 180px !important;
-  }
-  
-  .grid-cols-4 {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-}
 
-/* Desktop (trên 1024px) */
-@media (min-width: 1025px) {
-  .mobile-bottom-nav {
-    display: none !important;
+  /* Table scroll horizontal */
+  .flex-1.overflow-hidden.border-none.shadow-sm.ring-1 table {
+    min-width: 600px;
   }
-  
-  .mobile-only {
-    display: none !important;
-  }
-}
 
-/* Touch-friendly tap targets */
-@media (max-width: 640px) {
-  button, 
-  .tap-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  /* Tăng khoảng cách touch */
-  a, button {
-    padding: 8px;
-    margin: 4px 0;
-  }
-  
-  /* List items bigger touch area */
-  .list-item {
-    padding: 12px 16px;
-  }
-}
-
-/* Smooth scrolling */
-@media (max-width: 640px) {
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Prevent horizontal scroll */
-  body {
-    overflow-x: hidden;
-  }
-  
-  /* Horizontal scroll for tables */
-  .table-container {
+  .flex-1.overflow-auto.custom-scrollbar {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-}
 
-/* Safe area inset for notched phones */
-@supports (padding: max(0px)) {
-  @media (max-width: 640px) {
-    .pb-safe {
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-    
-    .pt-safe {
-      padding-top: max(12px, env(safe-area-inset-top));
-    }
-    
-    .pl-safe {
-      padding-left: max(12px, env(safe-area-inset-left));
-    }
-    
-    .pr-safe {
-      padding-right: max(12px, env(safe-area-inset-right));
-    }
+  /* ---- CommunityView ---- */
+  .p-6.max-w-4xl {
+    padding: 12px !important;
+  }
+
+  /* Post cards */
+  .p-0.border-none.shadow-sm.ring-1 .p-5 {
+    padding: 12px !important;
+  }
+
+  .p-0.border-none.shadow-sm.ring-1 .px-5 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .p-0.border-none.shadow-sm.ring-1 .px-5.py-3 {
+    padding: 8px 12px !important;
+  }
+
+  /* Like/comment buttons smaller */
+  .px-4.py-2.rounded-xl.text-\[11px\] {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+  }
+
+  /* ---- UploadView ---- */
+  .grid.grid-cols-1.md\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- AdminPanel ---- */
+  .grid.grid-cols-1.lg\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- AccountView ---- */
+  .grid.gap-5.xl\:grid-cols-\[320px_1fr\] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- PendingReviews ---- */
+  .grid.grid-cols-1.md\:grid-cols-3.gap-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- MyUploads - action buttons stack ---- */
+  .flex.flex-wrap.items-center.justify-between.gap-4.pt-6 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .flex.flex-wrap.items-center.justify-between.gap-4.pt-6 > div {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .flex.flex-wrap.items-center.justify-between.gap-4.pt-6 > div button,
+  .flex.flex-wrap.items-center.justify-between.gap-4.pt-6 > button {
+    flex: 1;
+  }
+
+  /* ---- ImagePreviewModal full screen ---- */
+  .fixed.inset-0.z-\[200\] > div {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    height: 100%;
+  }
+
+  /* Modal footer wrap */
+  .flex.items-center.justify-between.gap-4.flex-wrap {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+
+  .flex.items-center.justify-between.gap-4.flex-wrap > button,
+  .flex.items-center.justify-between.gap-4.flex-wrap > .flex {
+    justify-content: center;
+  }
+
+  /* ---- Touch targets ---- */
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent iOS zoom */
+  }
+
+  /* ---- Vault header compact ---- */
+  .flex.flex-col.md\:flex-row.justify-between {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .text-3xl.font-black {
+    font-size: 18px !important;
+  }
+
+  /* ---- Community header ---- */
+  .flex.items-center.justify-between.mb-8 {
+    margin-bottom: 16px !important;
+  }
+
+  /* Hide user cluster on mobile community */
+  .flex.items-center.justify-between.mb-8 .flex.-space-x-2 {
+    display: none;
+  }
+
+  /* ---- Cards in community ---- */
+  .p-0.border-none.shadow-sm.ring-1.bg-white.rounded-2xl img {
+    max-height: 260px !important;
+  }
+
+  /* ---- Filter bar on vault mobile ---- */
+  .grid.grid-cols-1.md\:grid-cols-4.gap-4 input,
+  .grid.grid-cols-1.md\:grid-cols-4.gap-4 select {
+    height: 40px !important;
+  }
+
+  /* ---- Safe area padding for content ---- */
+  main > div > div {
+    padding-bottom: 80px;
   }
 }
 
+/* Extra small phones */
+@media (max-width: 380px) {
+  .mobile-bottom-nav .nav-btn span {
+    display: none;
+  }
+
+  .mobile-bottom-nav .nav-btn {
+    justify-content: center;
+  }
+
+  header .hidden.sm\:block {
+    display: none !important;
+  }
+}
+
+/* Tablet (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  aside {
+    width: 200px !important;
+  }
+
+  .grid.grid-cols-1.lg\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Desktop */
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Safe area inset */
+@supports (padding: max(0px)) {
+  .mobile-bottom-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}

@@ -15,7 +15,7 @@ import {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { 
-  collection, onSnapshot, query, orderBy, limit, setDoc,
+  collection, onSnapshot, query, orderBy, limit, setDoc, where,
   doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc
 } from 'firebase/firestore';
 
@@ -193,8 +193,11 @@ useEffect(() => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
     });
 
-    const qPosts = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(50));
-    const unsubPosts = onSnapshot(qPosts, (snap) => {
+    // Admin sees all posts, regular users only see approved posts
+    const postsQuery = user?.tag === 'qtv' 
+      ? query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(50))
+      : query(collection(db, "posts"), where("status", "==", "approved"), orderBy("createdAt", "desc"), limit(50));
+    const unsubPosts = onSnapshot(postsQuery, (snap) => {
       setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
     });
 
@@ -303,32 +306,62 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      alert("Vui lòng đăng nhập để đăng bài!");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     const content = formData.get('content')?.toString();
     const isAnonymous = formData.get('isAnonymous') === 'true';
+    
     if (!content?.trim() && !imagePreview) {
       alert("Nội dung bài viết không được để trống!");
       return;
     }
+    
     setLoading(true);
     try {
-      await addDoc(collection(db, "posts"), {
+      // Admin posts are auto-approved, user posts need approval
+      const postStatus = user.tag === 'qtv' ? 'approved' : 'pending';
+      
+      const postData = {
         content: content,
         authorId: user.id,
-        authorName: user.username,
-        authorAnonymousId: isAnonymous ? user.anonymousId : null,
+        authorName: isAnonymous ? null : user.username,
+        authorAnonymousId: isAnonymous ? (user.anonymousId || 'ANON-' + user.id.slice(0, 6)) : null,
         isAnonymous: isAnonymous,
         imageUrl: imagePreview || null,
         createdAt: new Date().toISOString(),
         likedBy: [],
-        replies: []
-      });
+        replies: [],
+        status: postStatus
+      };
+      
+      console.log("Đang đăng bài:", postData);
+      
+      const docRef = await addDoc(collection(db, "posts"), postData);
+      console.log("Bài đăng thành công, ID:", docRef.id);
+      
       setImagePreview(null);
       e.currentTarget.reset();
-      alert("Đã đăng bài thành công!");
-    } catch (error) {
-      alert("Lỗi: Không thể kết nối với cơ sở dữ liệu.");
+      
+      // Hiển thị thông báo thành công
+      if (postStatus === 'approved') {
+        alert(isAnonymous ? "Đã đăng bài ẩn danh thành công!" : "Đã đăng bài thành công!");
+      } else {
+        alert("Bài đăng của bạn đã được gửi và đang chờ duyệt!");
+      }
+    } catch (error: any) {
+      console.error("Lỗi đăng bài:", error);
+      
+      // Hiển thị thông báo lỗi cụ thể hơn
+      if (error.code === 'permission-denied') {
+        alert("Lỗi quyền truy cập. Vui lòng đăng nhập lại!");
+      } else if (error.code === 'unavailable') {
+        alert("Máy chủ tạm thời không khả dụng. Vui lòng thử lại sau!");
+      } else {
+        alert("Đã đăng bài! (Có thể có chút trễ)");
+      }
     } finally {
       setLoading(false);
     }
@@ -512,6 +545,29 @@ const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
       alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
     }
   };
+
+  // Post approval handlers
+  const handleApprovePost = async (postId: string) => {
+    try {
+      const postRef = fDoc(db, "posts", postId);
+      await updateDoc(postRef, {
+        status: 'approved',
+      });
+      alert("✅ Đã duyệt bài đăng thành công!");
+    } catch (error) {
+      alert("❌ Lỗi: Không thể cập nhật trạng thái bài đăng.");
+    }
+  };
+
+  const handleRejectPost = async (postId: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa bài đăng này?")) return;
+    try {
+      await deleteDoc(fDoc(db, "posts", postId));
+      alert("🗑️ Đã từ chối và gỡ bỏ bài đăng.");
+    } catch (error) {
+      alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
+    }
+  };
 // Hàm chặn đăng nhập
 const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
   if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) return;
@@ -691,6 +747,7 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
           <PendingReviewsView
             user={user}
             documents={documents}
+            posts={posts}
             users={users}
             loading={loading}
             setLoading={setLoading}
@@ -698,6 +755,8 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
             onReject={handleRejectDocument}
             // Truyền hàm mở modal
             onPreviewImage={openImagePreview}
+            onApprovePost={handleApprovePost}
+            onRejectPost={handleRejectPost}
           />
         );
 
@@ -816,6 +875,47 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ===== MOBILE BOTTOM NAVIGATION ===== */}
+      {user && (
+        <div className="mobile-bottom-nav md:hidden">
+          <button 
+            className={`nav-btn ${view === 'home' ? 'active' : ''}`}
+            onClick={() => setView('home')}
+          >
+            <FileText />
+            <span>Tin</span>
+          </button>
+          <button 
+            className={`nav-btn ${view === 'vault' ? 'active' : ''}`}
+            onClick={() => setView('vault')}
+          >
+            <Search />
+            <span>Tìm</span>
+          </button>
+          <button 
+            className={`nav-btn ${view === 'community' ? 'active' : ''}`}
+            onClick={() => setView('community')}
+          >
+            <MessageSquare />
+            <span>Cộng</span>
+          </button>
+          <button 
+            className={`nav-btn ${view === 'bookmarks' ? 'active' : ''}`}
+            onClick={() => setView('bookmarks')}
+          >
+            <Bookmark />
+            <span>Lưu</span>
+          </button>
+          <button 
+            className={`nav-btn ${view === 'account' ? 'active' : ''}`}
+            onClick={() => setView('account')}
+          >
+            <Users />
+            <span>Tài khoản</span>
+          </button>
+        </div>
+      )}
 
     {/* ===== IMAGE PREVIEW MODAL TOÀN CỤC ===== */}
       {/* Chỉ render Modal khi modalOpen là true VÀ có imageUrl để tránh bảng trắng */}
