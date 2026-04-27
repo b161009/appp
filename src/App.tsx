@@ -193,12 +193,12 @@ useEffect(() => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
     });
 
-    // Admin sees all posts, regular users only see approved posts (or posts without status field for backwards compatibility)
+    // Lấy posts: admin thấy all, user thường chỉ thấy approved hoặc không có status
     const postsRef = collection(db, "posts");
     const unsubPosts = onSnapshot(postsRef, (snap) => {
       const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Post));
-      // Lọc posts phía client: admin thấy all, user thường chỉ thấy approved hoặc không có status (backwards compatible)
-      const filteredPosts = user?.tag === 'qtv' 
+      // Lọc posts phía client: admin thấy all, user thường chỉ thấy approved hoặc không có status
+      const filteredPosts = user?.role === 'admin' 
         ? allPosts 
         : allPosts.filter(p => p.status === 'approved' || !p.status);
       // Sắp xếp theo thời gian mới nhất
@@ -327,7 +327,8 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
     try {
       // Admin posts are auto-approved, user posts need approval
-      const postStatus = user.tag === 'qtv' ? 'approved' : 'pending';
+      // Admin posts are auto-approved, user posts need approval
+      const postStatus = user.role === 'admin' ? 'approved' : 'pending';
       
       const postData = {
         content: content,
@@ -348,7 +349,10 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       console.log("Bài đăng thành công, ID:", docRef.id);
       
       setImagePreview(null);
-      e.currentTarget.reset();
+      // Reset form nếu tồn tại
+      if (e.currentTarget) {
+        e.currentTarget.reset();
+      }
       
       // Hiển thị thông báo thành công
       if (postStatus === 'approved') {
