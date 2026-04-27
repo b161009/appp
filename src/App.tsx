@@ -193,12 +193,17 @@ useEffect(() => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
     });
 
-    // Admin sees all posts, regular users only see approved posts
-    const postsQuery = user?.tag === 'qtv' 
-      ? query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(50))
-      : query(collection(db, "posts"), where("status", "==", "approved"), orderBy("createdAt", "desc"), limit(50));
-    const unsubPosts = onSnapshot(postsQuery, (snap) => {
-      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
+    // Admin sees all posts, regular users only see approved posts (or posts without status field for backwards compatibility)
+    const postsRef = collection(db, "posts");
+    const unsubPosts = onSnapshot(postsRef, (snap) => {
+      const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Post));
+      // Lọc posts phía client: admin thấy all, user thường chỉ thấy approved hoặc không có status (backwards compatible)
+      const filteredPosts = user?.tag === 'qtv' 
+        ? allPosts 
+        : allPosts.filter(p => p.status === 'approved' || !p.status);
+      // Sắp xếp theo thời gian mới nhất
+      filteredPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPosts(filteredPosts.slice(0, 50));
     });
 
     return () => {
