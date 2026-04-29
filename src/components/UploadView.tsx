@@ -60,7 +60,7 @@ const UploadView: React.FC<UploadViewProps> = ({
           onSubmit={handleDocUpload}
           className="p-6 grid grid-cols-1 md:grid-cols-3 gap-5"
         >
-          {/* Tên tài liệu */}
+          {/* Document title */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Tên tài liệu *</label>
             <input
@@ -72,7 +72,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             />
           </div>
 
-          {/* Khối lớp */}
+          {/* Grade level */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Khối lớp *</label>
             <select
@@ -87,7 +87,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             </select>
           </div>
 
-          {/* Môn học */}
+          {/* Subject */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Môn học *</label>
             <select
@@ -102,7 +102,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             </select>
           </div>
 
-          {/* Loại đề */}
+          {/* Exam type */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Loại đề *</label>
             <select
@@ -117,7 +117,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             </select>
           </div>
 
-          {/* Năm học */}
+          {/* School year */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Năm học *</label>
             <input
@@ -129,7 +129,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             />
           </div>
 
-          {/* Trường học */}
+          {/* School name */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">Trường học</label>
             <input
@@ -141,7 +141,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             />
           </div>
 
-          {/* ===== KHU VỰC UPLOAD ẢNH ===== */}
+          {/* Image upload area */}
           <div className="md:col-span-3 space-y-3">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">
               Ảnh đề thi / tài liệu 
@@ -160,7 +160,7 @@ const UploadView: React.FC<UploadViewProps> = ({
                     <p className="text-[10px] text-slate-400 mt-1">Hỗ trợ JPG, PNG, WEBP • Tối đa 5MB</p>
                   </div>
                   <div className="flex gap-3">
-                    {/* Chọn từ thư viện */}
+                    {/* Select from gallery */}
                     <label className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl cursor-pointer hover:bg-accent/90 transition-all active:scale-95 shadow-lg shadow-accent/20">
                       <Upload className="w-4 h-4" />
                       <span className="text-[11px] font-black uppercase tracking-wider">Chọn ảnh</span>
@@ -173,7 +173,7 @@ const UploadView: React.FC<UploadViewProps> = ({
                       />
                     </label>
 
-                    {/* Chụp ảnh bằng camera (mobile) */}
+                    {/* Capture with camera (mobile) */}
                     <label className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 text-white rounded-xl cursor-pointer hover:bg-slate-600 transition-all active:scale-95">
                       <Camera className="w-4 h-4" />
                       <span className="text-[11px] font-black uppercase tracking-wider">Chụp ảnh</span>
@@ -192,7 +192,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             ) : (
               /* Preview ảnh đã chọn */
               <div className="relative border border-slate-200 rounded-xl overflow-hidden bg-slate-900 shadow-inner">
-                {/* Thanh toolbar */}
+                {/* Image toolbar */}
                 <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-gradient-to-b from-black/60 to-transparent">
                   <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">
                     Xem trước ảnh đề thi
@@ -228,7 +228,7 @@ const UploadView: React.FC<UploadViewProps> = ({
                   />
                 </div>
 
-                {/* Info bar dưới ảnh */}
+                {/* Image info bar */}
                 <div className="px-4 py-2 bg-slate-800 flex items-center justify-between">
                   <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -248,7 +248,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             )}
           </div>
 
-          {/* File nén (ZIP/RAR) - Tùy chọn */}
+          {/* Archive file (ZIP/RAR) - Optional */}
           <div className="md:col-span-3 space-y-3 pt-4 border-t border-slate-100">
             <label className="text-[10px] font-black uppercase opacity-40 px-1">
               File nén (ZIP/RAR) 
@@ -309,7 +309,7 @@ const UploadView: React.FC<UploadViewProps> = ({
             />
           </div>
 
-          {/* Ghi chú */}
+          {/* Notes */}
           <div className="md:col-span-3 px-1">
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0">⚠️</div>
@@ -320,10 +320,8 @@ const UploadView: React.FC<UploadViewProps> = ({
             </div>
           </div>
 
-          {/* Nút submit */}
+          {/* Submit button */}
           <div className="md:col-span-3 flex justify-end gap-3 pt-2">
-            {/* Nút submit */}
-<div className="md:col-span-3 flex justify-end gap-3 pt-2">
   <Button
     type="submit"
     // 🔥 LOGIC ĐÚNG: Chỉ khóa khi (Đang tải) HOẶC (Cả ảnh VÀ tệp đều trống)
@@ -344,11 +342,10 @@ const UploadView: React.FC<UploadViewProps> = ({
     )}
   </Button>
 </div>
-          </div>
         </form>
       </Card>
     </div>
   );
-};
+}
 
 export default UploadView;

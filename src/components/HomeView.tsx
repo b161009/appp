@@ -48,7 +48,7 @@ const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-10">
-      {/* WELCOME BANNER */}
+      {/* Welcome banner */}
       <div className="relative overflow-hidden bg-sidebar rounded-3xl p-10 text-white shadow-2xl">
         <div className="relative z-10">
           <h1 className="text-4xl font-black mb-2 uppercase tracking-tight">
@@ -75,7 +75,7 @@ const HomeView: React.FC<HomeViewProps> = ({
         <BookOpen className="absolute -right-10 -bottom-10 w-64 h-64 text-white/5 rotate-12" />
       </div>
 
-      {/* STATS GRID */}
+      {/* Statistics cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {stats.map((s, i) => (
           <div key={i} className="bg-white p-6 rounded-2xl border border-border-theme shadow-sm hover:shadow-md transition-all">
@@ -89,7 +89,7 @@ const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* RECENT DOCUMENTS */}
+        {/* Recent documents section */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Tài liệu mới cập nhật</h3>
@@ -117,7 +117,7 @@ const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        {/* ONLINE FRIENDS */}
+        {/* Online users section */}
         <div className="space-y-6">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Học sinh trực tuyến</h3>
           <div className="bg-slate-50 rounded-2xl p-6 border border-border-theme min-h-[300px]">

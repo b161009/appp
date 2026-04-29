@@ -22,7 +22,7 @@ const LoginView: React.FC<LoginViewProps> = ({
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
         
-        {/* LOGO */}
+        {/* Logo and branding */}
         <div className="text-center">
           <div className="inline-flex p-4 bg-accent/10 rounded-2xl mb-4">
             <School className="w-10 h-10 text-accent" />
@@ -55,7 +55,7 @@ const LoginView: React.FC<LoginViewProps> = ({
             </button>
 
          <div className="space-y-3">
-  {/* HIỆN Ô NICKNAME CHỈ KHI ĐĂNG KÝ */}
+  {/* Nickname input: only show during registration */}
   {isRegistering && (
     <input
       name="nickname"

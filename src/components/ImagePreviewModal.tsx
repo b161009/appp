@@ -83,7 +83,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         style={{ maxHeight: '95vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ===== HEADER ===== */}
+        {/* Header: Title and controls */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#1E293B] flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -99,7 +99,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             </div>
           </div>
 
-          {/* Zoom & Rotation Controls */}
+          {/* Zoom and rotation controls */}
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
@@ -135,12 +135,12 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           </div>
         </div>
 
-        {/* ===== ẢNH CHÍNH ===== */}
+        {/* Main image display */}
         <div
           className="flex-1 overflow-auto bg-[#0A0F1A] flex items-center justify-center relative"
           style={{ minHeight: '300px', maxHeight: 'calc(95vh - 180px)' }}
         >
-          {/* Lưới nền */}
+          {/* Background grid pattern */}
           <div
             className="absolute inset-0 opacity-[0.03]"
             style={{
@@ -166,7 +166,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               />
             )}
 
-            {/* Lớp mờ khi chưa xem đáp án */}
+            {/* Blur overlay for answer hiding */}
             {!showAnswer && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-10 text-center max-w-sm shadow-2xl">
@@ -192,10 +192,10 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           </div>
         </div>
 
-        {/* ===== FOOTER ACTIONS ===== */}
+        {/* Footer: Action buttons */}
         <div className="flex-shrink-0 bg-[#1E293B] border-t border-white/10 px-6 py-4">
 
-          {/* Form báo cáo (hiện khi nhấn báo cáo) */}
+          {/* Report form */}
           {showReportForm && (
             <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 flex-wrap">
               <Flag className="w-4 h-4 text-red-400 flex-shrink-0" />
@@ -227,9 +227,9 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             </div>
           )}
 
-          {/* Hàng nút chính */}
+          {/* Main action buttons row */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            {/* Trái: Báo cáo */}
+            {/* Report button (left) */}
             <button
               onClick={() => setShowReportForm(!showReportForm)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-95 ${
@@ -242,9 +242,9 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               Báo cáo
             </button>
 
-            {/* Phải: Đáp án + Tải về */}
+            {/* Answer and download buttons (right) */}
             <div className="flex items-center gap-3">
-              {/* Nút đáp án (toggle blur) */}
+              {/* Toggle answer visibility */}
               <button
                 onClick={() => setShowAnswer(!showAnswer)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all active:scale-95 ${
@@ -260,7 +260,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 )}
               </button>
 
-              {/* Nút tải về */}
+              {/* Download button */}
               <button
                 onClick={() => {
                   // Lấy dữ liệu từ props hoặc tìm trong documents

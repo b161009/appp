@@ -71,7 +71,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
 
   return (
     <div className="p-5 flex flex-col gap-5 h-full overflow-auto">
-      {/* Tab navigation */}
+      {/* Tab navigation: Documents / Posts */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <button
@@ -105,10 +105,10 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
         </div>
       </div>
 
-      {/* Documents Tab */}
+      {/* Documents tab content */}
       {activeTab === 'documents' && (
         <>
-          {/* Bộ lọc */}
+          {/* Filter controls */}
           <Card className="shadow-md">
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -147,7 +147,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
             </div>
           </Card>
 
-          {/* Danh sách tài liệu chờ duyệt */}
+          {/* Pending documents list */}
           <div className="grid gap-4">
             {filteredDocuments.length === 0 ? (
               <div className="p-20 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200">
@@ -215,7 +215,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
         </>
       )}
 
-      {/* Posts Tab */}
+      {/* Posts tab content */}
       {activeTab === 'posts' && (
         <div className="grid gap-4">
           {pendingPosts.length === 0 ? (
@@ -283,7 +283,7 @@ const PendingReviewsView: React.FC<PendingReviewsViewProps> = ({
         </div>
       )}
 
-      {/* Modal xem ảnh phóng to */}
+      {/* Image preview modal */}
       {selectedImage && (
         <div 
           className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-[100] p-4" 

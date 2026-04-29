@@ -50,7 +50,7 @@ const VaultView: React.FC<VaultViewProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'bookmarks'>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
 
-  // Logic lọc tài liệu mạnh mẽ
+  // Logic lọc siêu siêu siêu cấp vip pro
   const filteredDocs = useMemo(() => {
     return documents.filter(doc => {
       // Chỉ hiện tài liệu đã duyệt, trừ khi là Admin hoặc chính chủ đang xem bài của mình
@@ -73,7 +73,7 @@ const VaultView: React.FC<VaultViewProps> = ({
 
   return (
     <div className="p-6 flex flex-col h-full gap-6 overflow-hidden bg-[#F8FAFC]">
-      {/* TIÊU ĐỀ VÀ NÚT TẢI LÊN */}
+      {/* Header: Title and upload button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-black uppercase tracking-tighter text-sidebar flex items-center gap-3">
@@ -104,7 +104,7 @@ const VaultView: React.FC<VaultViewProps> = ({
         </div>
       </div>
 
-      {/* THANH BỘ LỌC (FILTER BAR) */}
+      {/* Filter bar */}
       <AnimatePresence>
         {isFilterOpen && (
           <motion.div
@@ -115,7 +115,7 @@ const VaultView: React.FC<VaultViewProps> = ({
           >
             <Card className="p-5 border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Tìm kiếm */}
+                {/* Search input */}
                 <div className="relative group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-accent transition-colors" />
                   <input 
@@ -126,7 +126,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                   />
                 </div>
                 
-                {/* Môn học */}
+                {/* Subject filter */}
                 <div className="relative">
                   <select 
                     className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
@@ -139,7 +139,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
                 </div>
 
-                {/* Khối lớp */}
+                {/* Grade filter */}
                 <div className="relative">
                   <select 
                     className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
@@ -152,7 +152,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
                 </div>
 
-                {/* Loại đề */}
+                {/* Exam type filter */}
                 <div className="relative">
                   <select 
                     className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-[10px] font-black uppercase outline-none appearance-none focus:ring-2 focus:ring-accent/10"
@@ -170,7 +170,7 @@ const VaultView: React.FC<VaultViewProps> = ({
         )}
       </AnimatePresence>
       CLB Tin học 
-      {/* DANH SÁCH TÀI LIỆU */}
+      {/* Documents list */}
       <Card className="flex-1 overflow-hidden border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl flex flex-col">
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[800px]">
@@ -192,7 +192,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                   <tr key={doc.id} className="hover:bg-slate-50/80 transition-all group">
                     <td className="p-5">
   <div className="flex items-center gap-4">
-    {/* Icon bên trái - Giữ nguyên style của bạn */}
+    {/* Document type icon */}
     <div className={cn(
       "w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm group-hover:scale-110",
       doc.type.includes("Ôn tập") ? "bg-emerald-50 text-emerald-500" : "bg-blue-50 text-blue-500"
@@ -200,7 +200,7 @@ const VaultView: React.FC<VaultViewProps> = ({
       <FileCheck className="w-5 h-5" />
     </div>
 
-    {/* Phần nội dung có chức năng nhấn để xem ảnh */}
+    {/* Document info - click to preview */}
     <div 
       className="flex-1 cursor-pointer" 
       onClick={() => {
@@ -213,7 +213,7 @@ const VaultView: React.FC<VaultViewProps> = ({
     >
       <div className="text-[13px] font-black text-slate-700 uppercase leading-tight group-hover:text-accent transition-colors flex items-center gap-2">
         {doc.title}
-        {/* Hiển thị nhãn nếu có ảnh để user biết mà nhấn */}
+        {/* Preview available label */}
         {doc.fileContent && (
           <span className="text-[8px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black animate-pulse">
             XEM ẢNH
@@ -287,7 +287,7 @@ const VaultView: React.FC<VaultViewProps> = ({
                           <Download className="w-4 h-4" />
                         </button>
 
-                        {/* Nếu là Admin hoặc chủ bài đăng mới hiện nút Xóa */}
+                        {/* Delete button: only for admin or author */}
                         {(user?.role === 'admin' || user?.id === doc.authorId) && handleDeleteDocument && (
                           <button 
                             onClick={() => {
@@ -309,7 +309,7 @@ const VaultView: React.FC<VaultViewProps> = ({
             </tbody>
           </table>
           
-          {/* TRẠNG THÁI TRỐNG (EMPTY STATE) */}
+          {/* Empty state */}
           {filteredDocs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 space-y-4">
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
@@ -323,7 +323,7 @@ const VaultView: React.FC<VaultViewProps> = ({
           )}
         </div>
 
-        {/* FOOTER BẢNG (INFO BAR) */}
+        {/* Table footer: Info bar */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-6">
            <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <Info className="w-3.5 h-3.5" />

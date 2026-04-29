@@ -1,5 +1,6 @@
 /**
- * App.tsx - Fixed Sidebar & Scope Logic
+ * App.tsx - Component chính của ứng dụng
+ * Quản lý trạng thái và điều hướng chính
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
@@ -9,7 +10,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
-// --- FIREBASE SERVICES ---
+// Firebase services
 import { auth, db } from './firebase'; 
 import { 
   onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword
@@ -19,12 +20,12 @@ import {
   doc as fDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc, addDoc
 } from 'firebase/firestore';
 
-// --- TYPES & CONSTANTS ---
+// Types and constants
 import type { Document, Post, Review, User, Report } from './types';
 import { SUBJECTS, GRADES, EXAM_TYPES } from './constants';
 import { Button, Badge, Card } from './components/UI';
 
-// --- VIEWS ---
+// Views
 import HomeView from './components/HomeView';
 import VaultView from './components/VaultView';
 import CommunityView from './components/CommunityView';
@@ -37,7 +38,7 @@ import MyUploadsView from './components/MyUploadsView';
 import PendingReviewsView from './components/PendingReviewsView';
 import ImagePreviewModal from './components/ImagePreviewModal';
 
-// --- 1. GẮN SIDEBARITEM Ở ĐÂY (Để fix lỗi "Cannot find name SidebarItem") ---
+// Sidebar navigation item component
 const SidebarItem = ({ label, icon: Icon, active, onClick }: { label: string, icon: LucideIcon, active: boolean, onClick: () => void }) => (
   <button
     onClick={onClick}
@@ -51,7 +52,7 @@ const SidebarItem = ({ label, icon: Icon, active, onClick }: { label: string, ic
 );
 
 export default function App() {
-  // --- STATE PHẢI KHAI BÁO ĐẦU TIÊN (Để fix lỗi 'used before declaration') ---
+  // State quản lý ứng dụng
   const [view, setView] = useState<string>('home');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,7 +77,7 @@ export default function App() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [avatarInputRef, setAvatarInputRef] = useState<HTMLInputElement | null>(null);
 
-  // --- 2. HÀM LOGIN (Đặt sau khi đã có các State ở trên) ---
+  // Xử lý đăng nhập/đăng ký
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -119,7 +120,7 @@ export default function App() {
 
 
 
-  // --- HÀM MỞ/ĐÓNG IMAGE PREVIEW MODAL ---
+  // Mở modal xem ảnh tài liệu
   const openImagePreview = (url: string, title: string, docId: string) => {
     setModalImageUrl(url);
     setModalTitle(title);
@@ -137,7 +138,7 @@ export default function App() {
     }, 300);
   };
 
-  // --- HÀM XỬ LÝ ẢNH UPLOAD ---
+  // Xử lý upload ảnh từ device
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,7 +153,7 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  // --- LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP ---
+  // Lắng nghe auth state thay đổi
 useEffect(() => {
   const unsubAuth = onAuthStateChanged(auth, async (fireUser) => {
     if (fireUser) {
@@ -179,29 +180,29 @@ useEffect(() => {
   return () => unsubAuth();
 }, []);
 
-  // --- LẮNG NGHE FIREBASE FIRESTORE ---
+  // Lắng nghe Firestore data changes
  useEffect(() => {
     if (!user) return;
 
-    // Lắng nghe tài liệu và bài viết (đã có của bạn)
+    // Lắng nghe documents collection
     const unsubDocs = onSnapshot(collection(db, "documents"), (snap) => {
       setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Document)));
     });
 
-    // THÊM ĐOẠN NÀY ĐỂ LẤY DANH SÁCH HỌC SINH CHO ADMIN
+    // Lắng nghe users collection cho admin
     const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
     });
 
-    // Lấy posts: admin thấy all, user thường chỉ thấy approved hoặc không có status
+    // Lấy danh sách posts
     const postsRef = collection(db, "posts");
     const unsubPosts = onSnapshot(postsRef, (snap) => {
       const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Post));
-      // Lọc posts phía client: admin thấy all, user thường chỉ thấy approved hoặc không có status
+      // Lọc posts theo quyền: admin thấy all, user thường chỉ thấy approved
       const filteredPosts = user?.role === 'admin' 
         ? allPosts 
         : allPosts.filter(p => p.status === 'approved' || !p.status);
-      // Sắp xếp theo thời gian mới nhất
+      // Sắp xếp giảm dần theo thời gian
       filteredPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setPosts(filteredPosts.slice(0, 50));
     });
@@ -209,7 +210,7 @@ useEffect(() => {
     return () => {
       unsubDocs();
       unsubPosts();
-      unsubUsers(); // Clear lắng nghe users
+      unsubUsers(); // Cleanup listener
     };
   }, [user]);
 
@@ -236,7 +237,7 @@ const handleUpdateAvatar = async (userId: string, newAvatarUrl: string) => {
   }
 };
 
-// --- HÀM CẬP NHẬT THẺ NGƯỜI DÙNG ---
+// Cập nhật thẻ người dùng
 const handleUpdateTag = async (userId: string, newTag: string) => {
   try {
     const userRef = fDoc(db, "users", userId);
@@ -271,7 +272,7 @@ const handleUpdateTag = async (userId: string, newTag: string) => {
   }
 };
 
-// --- HÀM XỬ LÝ ĐỔI ẢNH ĐẠI DIỆN TỪ HEADER ---
+// Xử lý đổi avatar
 const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (!file) return;

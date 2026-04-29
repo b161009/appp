@@ -1,4 +1,4 @@
-/* Nhập font chữ và Tailwind CSS */
+/* Import fonts and Tailwind CSS */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
@@ -45,22 +45,22 @@
   background-size: 15px 15px;
 }
 
-/* ===================== MOBILE BOTTOM NAV ===================== */
+/* Mobile bottom navigation */
 
 .mobile-bottom-nav {
   display: none;
 }
 
-/* ===================== MOBILE RESPONSIVE ===================== */
+/* Mobile responsive styles */
 
 @media (max-width: 768px) {
 
-  /* ---- Ẩn sidebar trên mobile ---- */
+  /* Hide sidebar on mobile */
   aside {
     display: none !important;
   }
 
-  /* ---- Header mobile compact ---- */
+  /* Compact header for mobile */
   header {
     height: 56px !important;
     padding: 0 16px !important;
@@ -71,12 +71,12 @@
     max-width: 220px;
   }
 
-  /* ---- Main content no sidebar ---- */
+  /* Main content full width */
   .flex.h-screen > .flex-1 {
     width: 100% !important;
   }
 
-  /* ---- Bottom nav hiện ra ---- */
+  /* Show bottom navigation */
   .mobile-bottom-nav {
     display: flex !important;
     position: fixed;
@@ -128,17 +128,17 @@
     stroke-width: 2.5;
   }
 
-  /* ---- Content phải nhường chỗ cho bottom nav ---- */
+  /* Content padding for bottom nav */
   main .h-full {
     padding-bottom: 72px;
   }
 
-  /* ---- Pages padding cho mobile ---- */
+  /* Page padding for mobile */
   .p-8 { padding: 16px !important; }
   .p-6 { padding: 14px !important; }
   .p-5 { padding: 12px !important; }
 
-  /* ---- HomeView ---- */
+  /* HomeView styles */
   /* Welcome banner */
   .relative.overflow-hidden.bg-sidebar.rounded-3xl {
     border-radius: 16px !important;
@@ -166,7 +166,7 @@
     font-size: 10px !important;
   }
 
-  /* Stats grid - 2 cột */
+  /* Stats grid: 2 columns */
   .grid.grid-cols-2.md\:grid-cols-4 {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
@@ -180,30 +180,30 @@
     font-size: 20px !important;
   }
 
-  /* Home main grid - stack */
+  /* Home main grid: stack layout */
   .grid.grid-cols-1.lg\:grid-cols-3 {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
   }
 
-  /* Hide online sidebar on mobile home */
+  /* Hide online sidebar on mobile */
   .grid.grid-cols-1.lg\:grid-cols-3 > .space-y-6:last-child {
     display: none;
   }
 
-  /* ---- VaultView ---- */
+  /* VaultView styles */
   .p-6.flex.flex-col.h-full.gap-6 {
     padding: 12px !important;
     gap: 10px !important;
   }
 
-  /* Hide filter bar details, show compact version */
+  /* Compact filter bar */
   .grid.grid-cols-1.md\:grid-cols-4 {
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
   }
 
-  /* Table scroll horizontal */
+  /* Horizontal table scroll */
   .flex-1.overflow-hidden.border-none.shadow-sm.ring-1 table {
     min-width: 600px;
   }
@@ -213,12 +213,12 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* ---- CommunityView ---- */
+  /* CommunityView styles */
   .p-6.max-w-4xl {
     padding: 12px !important;
   }
 
-  /* Post cards */
+  /* Post card padding */
   .p-0.border-none.shadow-sm.ring-1 .p-5 {
     padding: 12px !important;
   }
@@ -232,13 +232,13 @@
     padding: 8px 12px !important;
   }
 
-  /* Like/comment buttons smaller */
+  /* Smaller like/comment buttons */
   .px-4.py-2.rounded-xl.text-\[11px\] {
     padding: 6px 10px !important;
     font-size: 10px !important;
   }
 
-  /* ---- VaultView: Action buttons always visible on mobile ---- */
+  /* VaultView: Action buttons always visible */
   @media (max-width: 768px) {
     /* Table action buttons - always show */
     .group:hover .opacity-0, 
@@ -259,27 +259,27 @@
     }
   }
 
-  /* ---- UploadView ---- */
+  /* UploadView styles */
   .grid.grid-cols-1.md\:grid-cols-3 {
     grid-template-columns: 1fr !important;
   }
 
-  /* ---- AdminPanel ---- */
+  /* AdminPanel styles */
   .grid.grid-cols-1.lg\:grid-cols-2 {
     grid-template-columns: 1fr !important;
   }
 
-  /* ---- AccountView ---- */
+  /* AccountView styles */
   .grid.gap-5.xl\:grid-cols-\[320px_1fr\] {
     grid-template-columns: 1fr !important;
   }
 
-  /* ---- PendingReviews ---- */
+  /* PendingReviews styles */
   .grid.grid-cols-1.md\:grid-cols-3.gap-4 {
     grid-template-columns: 1fr !important;
   }
 
-  /* ---- MyUploads - action buttons stack ---- */
+  /* MyUploads: action buttons stack */
   .flex.flex-wrap.items-center.justify-between.gap-4.pt-6 {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -296,7 +296,7 @@
     flex: 1;
   }
 
-  /* ---- ImagePreviewModal full screen ---- */
+  /* ImagePreviewModal fullscreen */
   .fixed.inset-0.z-\[200\] > div {
     max-width: 100% !important;
     max-height: 100% !important;
@@ -316,7 +316,7 @@
     justify-content: center;
   }
 
-  /* ---- Touch targets ---- */
+  /* Touch targets for mobile */
   button {
     -webkit-tap-highlight-color: transparent;
   }
@@ -325,7 +325,7 @@
     font-size: 16px !important; /* Prevent iOS zoom */
   }
 
-  /* ---- Vault header compact ---- */
+  /* Compact vault header */
   .flex.flex-col.md\:flex-row.justify-between {
     flex-direction: column !important;
     gap: 10px !important;
@@ -335,7 +335,7 @@
     font-size: 18px !important;
   }
 
-  /* ---- Community header ---- */
+  /* Community header */
   .flex.items-center.justify-between.mb-8 {
     margin-bottom: 16px !important;
   }
@@ -345,18 +345,18 @@
     display: none;
   }
 
-  /* ---- Cards in community ---- */
+  /* Community cards */
   .p-0.border-none.shadow-sm.ring-1.bg-white.rounded-2xl img {
     max-height: 260px !important;
   }
 
-  /* ---- Filter bar on vault mobile ---- */
+  /* Filter bar on mobile */
   .grid.grid-cols-1.md\:grid-cols-4.gap-4 input,
   .grid.grid-cols-1.md\:grid-cols-4.gap-4 select {
     height: 40px !important;
   }
 
-  /* ---- Safe area padding for content ---- */
+  /* Safe area padding */
   main > div > div {
     padding-bottom: 80px;
   }

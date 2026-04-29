@@ -9,6 +9,7 @@ import { Button, Card, Badge } from './UI';
 import { cn } from '../lib/utils';
 import { TagBadge, TagSelector } from './TagBadge';
 
+// Props interface for CommunityView component
 interface CommunityViewProps {
   user: User | null;
   posts: Post[];
@@ -54,7 +55,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 bg-[#F8FAFC] min-h-screen">
       
-      {/* 1. HEADER CỘNG ĐỒNG */}
+      {/* Header: Tiêu đề và danh sách online */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-800 flex items-center gap-2">
@@ -83,7 +84,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
         </div>
       </div>
 
-      {/* 2. KHU VỰC SOẠN THẢO (CREATE POST) */}
+      {/* Form tạo bài viết mới */}
       <Card className="p-5 border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl transition-all focus-within:ring-accent/30">
         <form 
           onSubmit={(e) => {
@@ -91,7 +92,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
           }} 
           className="space-y-4"
         >
-          {/* Input ẩn để gửi trạng thái ẩn danh sang App.tsx */}
+          {/* Hidden input: trạng thái anonymous */}
           <input type="hidden" name="isAnonymous" value={String(isAnonymous)} />
 
           <div className="flex gap-4">
@@ -112,7 +113,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
             />
           </div>
 
-          {/* Preview ảnh (giữ nguyên) */}
+          {/* Image preview */}
           {imagePreview && (
             <div className="relative inline-block ml-16">
               <div className="rounded-2xl overflow-hidden border-4 border-slate-50 shadow-md">
@@ -130,14 +131,14 @@ const CommunityView: React.FC<CommunityViewProps> = ({
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-50 ml-16">
             <div className="flex gap-3">
-               {/* Nút thêm ảnh */}
+               {/* Upload image button */}
                <label className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all active:scale-95 group">
                 <ImageIcon className="w-4 h-4 text-slate-400 group-hover:text-accent" />
                 <span className="text-[10px] font-black uppercase text-slate-500 group-hover:text-slate-700">Ảnh</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
 
-              {/* NÚT CHỌN ẨN DANH (VỊ TRÍ MỚI) */}
+              {/* Anonymous toggle */}
               <button 
                 type="button"
                 onClick={() => setIsAnonymous(!isAnonymous)}
@@ -150,7 +151,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                 <span className="text-[10px] font-black uppercase">Ẩn danh</span>
               </button>
 
-              {/* NÚT CHỌN THẺ */}
+              {/* Tag selector */}
               {user && handleUpdateTag && (
                 <TagSelector
                   currentTag={user.tag}
@@ -171,7 +172,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
           </div>
         </form>
       </Card>
-      {/* 3. DANH SÁCH BÀI VIẾT (POST FEED) */}
+      {/* Danh sách bài viết */}
       <div className="space-y-6 pb-20">
         <AnimatePresence mode="popLayout">
           {posts.length > 0 ? (
@@ -188,7 +189,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                   layout
                 >
                   <Card className="p-0 border-none shadow-sm ring-1 ring-slate-200 bg-white rounded-2xl overflow-hidden group">
-                    {/* Header của bài viết */}
+                    {/* Post header: Author info */}
                     <div className="p-5 flex justify-between items-start">
                       <div className="flex gap-4">
                         <div className="relative">
@@ -212,7 +213,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                                 ? `Thành viên ẩn danh - ${post.authorAnonymousId || 'ANON'}` 
                                 : (postAuthor?.username || 'Người dùng')}
                             </span>
-                            {/* Hiển thị thẻ người đăng */}
+                            {/* User tag badge */}
                             <TagBadge tag={postAuthor?.tag} role={postAuthor?.role} size="sm" />
                             {postAuthor?.role === 'admin' && (
                               <Badge className="bg-accent/10 text-accent border-none text-[8px] font-black px-2 py-0.5 rounded-md">ADMIN</Badge>
@@ -225,7 +226,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                         </div>
                       </div>
                       
-                      {/* Thao tác xóa hoặc báo cáo */}
+                      {/* Actions: Delete/Report */}
                       <div className="flex items-center gap-1">
                         {(user?.role === 'admin' || user?.id === post.authorId) ? (
                           <button 
@@ -249,7 +250,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Nội dung bài viết */}
+                    {/* Post content */}
                     <div className="px-5 pb-2">
                       <p className="text-[13px] text-slate-600 font-medium leading-relaxed whitespace-pre-wrap mb-4">
                         {post.content}
@@ -266,7 +267,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                       )}
                     </div>
 
-                    {/* Footer: Like & Comment */}
+                    {/* Footer: Like, Comment buttons */}
                     <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-50 flex items-center gap-4">
                       <button 
                         onClick={() => handleLikePost(post.id)}
@@ -290,10 +291,10 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                       </button>
                     </div>
                     
-                    {/* Comment Section */}
+                    {/* Comments section */}
                     {expandedPost === post.id && (
                       <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 space-y-3">
-                        {/* Danh sách bình luận */}
+                        {/* Comment list */}
                         {post.replies && post.replies.length > 0 ? (
                           <div className="space-y-3 max-h-64 overflow-y-auto">
                             {post.replies.map((reply, idx) => {
@@ -322,7 +323,7 @@ const CommunityView: React.FC<CommunityViewProps> = ({
                           <p className="text-[10px] text-slate-400 text-center py-2">Chưa có bình luận nào</p>
                         )}
                         
-                        {/* Input bình luận */}
+                        {/* Comment input */}
                         <div className="flex gap-2">
                           <input
                             type="text"

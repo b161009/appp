@@ -1,4 +1,4 @@
-// Điểm vào ứng dụng React, render App vào DOM
+
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
