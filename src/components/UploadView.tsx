@@ -13,7 +13,7 @@ interface UploadViewProps {
   imagePreview?: string | null;
   setImagePreview?: (v: string | null) => void;
   handleImageUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  archiveFile: File | null; // 🔥 Nhận từ App
+  archiveFile: File | null; 
   setArchiveFile: (f: File | null) => void; //
 }
 
@@ -324,8 +324,6 @@ const UploadView: React.FC<UploadViewProps> = ({
           <div className="md:col-span-3 flex justify-end gap-3 pt-2">
   <Button
     type="submit"
-    // 🔥 LOGIC ĐÚNG: Chỉ khóa khi (Đang tải) HOẶC (Cả ảnh VÀ tệp đều trống)
-    // Dấu ! đứng trước (imagePreview || archiveFile) nghĩa là nếu cả 2 đều ko có thì mới disabled
     disabled={loading || !(imagePreview || archiveFile)} 
     className="px-8 h-12 font-black uppercase tracking-widest shadow-lg disabled:opacity-40"
   >

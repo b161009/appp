@@ -3,7 +3,7 @@ import { Pencil, Lock, LogOut, Save, X, Upload } from 'lucide-react';
 import type { User, Report } from '../types';
 import { Button, Card } from './UI';
 import { useEffect } from 'react';
-// 🔥 Firebase
+//  Firebase
 import { auth } from "../firebase";
 import { updatePassword } from "firebase/auth";
 import { TagBadge, TagSelector } from './TagBadge';
@@ -60,13 +60,11 @@ useEffect(() => {
   }
 }, [user]);
   if (!user) return null;
-  // 🔥 CẬP NHẬT PROFILE (KHÔNG DÙNG API NỮA)
+  //  CẬP NHẬT PROFILE (KHÔNG DÙNG API NỮA)
 const handleUpdateProfile = async () => {
   setLoading(true)
 
   try {
-    // 🧠 Hiện tại: update local (giả lập DB)
-    // 👉 Sau này có thể nối Firestore
 
     const updatedUser = {
       ...user,
@@ -79,7 +77,7 @@ const handleUpdateProfile = async () => {
     setUser(updatedUser)
     setIsEditingProfile(false)
 
-    alert("Cập nhật thông tin thành công 🚀")
+    alert("Cập nhật thông tin thành công ")
 
   } catch (e) {
     console.error(e)
@@ -89,8 +87,6 @@ const handleUpdateProfile = async () => {
   }
 }
 useEffect(() => {
-  // Chỉ tự động cấp thẻ Admin tại trang cá nhân để tránh vòng lặp spam
-  // Chỉ chạy một lần khi user được load và là admin chưa có tag
   const autoAssignAdminTag = async () => {
     if (user && user.role === 'admin' && !user.tag && typeof handleUpdateTag === 'function') {
       try {
@@ -105,8 +101,8 @@ useEffect(() => {
   if (user) {
     autoAssignAdminTag();
   }
-}, [user?.id, user?.role, user?.tag]); // Chạy khi user thay đổi
-// 🔐 ĐỔI MẬT KHẨU (FIREBASE REAL)
+}, [user?.id, user?.role, user?.tag]); 
+// đổi mk
 const handleChangePassword = async () => {
 
   if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -129,7 +125,7 @@ const handleChangePassword = async () => {
       return
     }
 
-    // 🔥 Firebase đổi mật khẩu
+
     await updatePassword(currentUser, passwordData.newPassword)
 
     setIsChangingPassword(false)
@@ -144,7 +140,7 @@ const handleChangePassword = async () => {
   } catch (e: any) {
     console.error(e)
 
-    // ⚠️ Firebase thường yêu cầu re-login
+
     if (e.code === "auth/requires-recent-login") {
       alert("Vui lòng đăng nhập lại để đổi mật khẩu")
     } else {
@@ -161,7 +157,6 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64String = reader.result as string;
-      // Gọi hàm onUpdateAvatar được truyền từ App.tsx xuống
       if (onUpdateAvatar) {
         await onUpdateAvatar(user?.id || '', base64String);
       }
@@ -192,12 +187,10 @@ return (
         alt="Avatar" 
       />
     ) : (
-      // Nếu không có ảnh thì hiện 2 chữ cái đầu của tên
       <span>{user?.username?.slice(0, 2).toUpperCase()}</span>
     )}
   </div>
 
-  {/* Tất cả user đều thấy nút "Đổi ảnh" (Admin và User thường) */}
   <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all text-white">
     <Upload className="w-5 h-5 mb-1" />
     <span className="text-[8px] font-bold uppercase tracking-tighter">Đổi ảnh</span>

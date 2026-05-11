@@ -63,7 +63,6 @@ const SupportView: React.FC<SupportViewProps> = ({
   useEffect(() => {
   if (!user || user.role !== 'admin') return;
   
-  // Thay vì fetch, dùng onSnapshot để lấy data realtime
   const unsub = onSnapshot(collection(db, "support_conversations"), (snap) => {
     const convs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setSupportConversations(convs);

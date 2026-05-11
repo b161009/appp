@@ -67,7 +67,7 @@ const LoginView: React.FC<LoginViewProps> = ({
   )}
 
   <input
-    name="username" // Vẫn giữ name là username để logic cũ không gãy, nhưng nhập Email
+    name="username" 
     type="email"
     required
     placeholder="Địa chỉ Email..."

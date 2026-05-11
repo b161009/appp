@@ -90,12 +90,24 @@ export default function App() {
     // Tự động thêm @gmail.com nếu user chỉ nhập tên
     const email = emailInput.includes('@') ? emailInput : `${emailInput}@gmail.com`;
 
+    console.log(`[LOGIN] Bắt đầu ${isRegistering ? 'đăng ký' : 'đăng nhập'} cho email: ${email}, role: ${loginRole}`);
+
     try {
       if (isRegistering) {
-        if (password !== confirmPassword) throw new Error("Mật khẩu không khớp!");
+        console.log('[REGISTER] Kiểm tra mật khẩu khớp...');
+        if (password !== confirmPassword) {
+          console.error('[REGISTER] Lỗi: Mật khẩu không khớp');
+          throw new Error("Mật khẩu không khớp!");
+        }
+        console.log('[REGISTER] Tạo tài khoản mới với Firebase Auth...');
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log(`[REGISTER] Tài khoản Firebase tạo thành công, UID: ${userCredential.user.uid}`);
+        
         // Tạo mã ẩn danh ngẫu nhiên cho user
         const anonymousId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        console.log(`[REGISTER] Tạo anonymous ID: ${anonymousId}`);
+        
+        console.log('[REGISTER] Lưu thông tin user vào Firestore...');
         await setDoc(fDoc(db, "users", userCredential.user.uid), {
           id: userCredential.user.uid,
           username: nickname || email.split('@')[0],
@@ -107,14 +119,19 @@ export default function App() {
           anonymousId: anonymousId,
           createdAt: new Date().toISOString()
         });
+        console.log(`[REGISTER] Đăng ký thành công cho user: ${nickname || email.split('@')[0]}`);
         setIsRegistering(false);
       } else {
+        console.log('[LOGIN] Đăng nhập với Firebase Auth...');
         await signInWithEmailAndPassword(auth, email, password);
+        console.log(`[LOGIN] Đăng nhập thành công cho email: ${email}`);
       }
     } catch (error: any) {
+      console.error(`[${isRegistering ? 'REGISTER' : 'LOGIN'}] Lỗi: ${error.message}`, error);
       alert("Lỗi: " + error.message);
     } finally {
       setLoading(false);
+      console.log(`[${isRegistering ? 'REGISTER' : 'LOGIN'}] Hoàn thành xử lý`);
     }
   };
 
@@ -122,6 +139,7 @@ export default function App() {
 
   // Mở modal xem ảnh tài liệu
   const openImagePreview = (url: string, title: string, docId: string) => {
+    console.log(`[MODAL] Mở modal xem ảnh: ${title} (${docId})`);
     setModalImageUrl(url);
     setModalTitle(title);
     setModalDocId(docId);
@@ -129,8 +147,8 @@ export default function App() {
   };
 
   const closeImagePreview = () => {
+    console.log(`[MODAL] Đóng modal xem ảnh: ${modalTitle}`);
     setModalOpen(false);
-    // Delay clear để tránh flash
     setTimeout(() => {
       setModalImageUrl(null);
       setModalTitle('');
@@ -141,13 +159,19 @@ export default function App() {
   // Xử lý upload ảnh từ device
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[IMAGE_UPLOAD] Không có file được chọn');
+      return;
+    }
+    console.log(`[IMAGE_UPLOAD] Upload ảnh: ${file.name} (${file.size} bytes)`);
     if (file.size > 5 * 1024 * 1024) {
+      console.warn(`[IMAGE_UPLOAD] File quá lớn: ${file.size} bytes > 5MB`);
       alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
       return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
+      console.log('[IMAGE_UPLOAD] Đã đọc file thành base64');
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
@@ -155,59 +179,82 @@ export default function App() {
 
   // Lắng nghe auth state thay đổi
 useEffect(() => {
+  console.log('[AUTH] Khởi tạo listener auth state');
   const unsubAuth = onAuthStateChanged(auth, async (fireUser) => {
     if (fireUser) {
-      // 1. Tìm thông tin user này trong Firestore
+      console.log(`[AUTH] User đăng nhập: ${fireUser.email} (${fireUser.uid})`);
+      // Tìm thông tin user này trong Firestore
       const userRef = fDoc(db, "users", fireUser.uid);
       
-      // 2. Lắng nghe dữ liệu user để lấy Role realtime
+      // check dữ liệu user để lấy Role realtime
       const unsubUserDoc = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data() as User;
+          console.log(`[AUTH] Lấy thông tin user từ Firestore: ${userData.username}, role: ${userData.role}`);
           setUser({
             ...userData,
             id: fireUser.uid,
           });
+        } else {
+          console.warn(`[AUTH] Không tìm thấy dữ liệu user trong Firestore cho UID: ${fireUser.uid}`);
         }
       });
 
-      return () => unsubUserDoc();
+      return () => {
+        console.log('[AUTH] Cleanup user doc listener');
+        unsubUserDoc();
+      };
     } else {
+      console.log('[AUTH] User đăng xuất');
       setUser(null);
       setView('login');
     }
   });
-  return () => unsubAuth();
+  return () => {
+    console.log('[AUTH] Cleanup auth listener');
+    unsubAuth();
+  };
 }, []);
 
   // Lắng nghe Firestore data changes
  useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('[DATA] Không có user, bỏ qua lắng nghe data');
+      return;
+    }
+
+    console.log(`[DATA] Khởi tạo listeners cho user: ${user.username} (${user.role})`);
 
     // Lắng nghe documents collection
     const unsubDocs = onSnapshot(collection(db, "documents"), (snap) => {
-      setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Document)));
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Document));
+      console.log(`[DATA] Cập nhật ${docs.length} tài liệu`);
+      setDocuments(docs);
     });
 
-    // Lắng nghe users collection cho admin
+    //  users collection cho admin
     const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
-      setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
+      const users = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+      console.log(`[DATA] Cập nhật ${users.length} users`);
+      setUsers(users);
     });
 
     // Lấy danh sách posts
     const postsRef = collection(db, "posts");
     const unsubPosts = onSnapshot(postsRef, (snap) => {
       const allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() } as Post));
-      // Lọc posts theo quyền: admin thấy all, user thường chỉ thấy approved
+      // Lọc posts theo quyền
       const filteredPosts = user?.role === 'admin' 
         ? allPosts 
         : allPosts.filter(p => p.status === 'approved' || !p.status);
       // Sắp xếp giảm dần theo thời gian
       filteredPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      console.log(`[DATA] Cập nhật ${filteredPosts.length} bài viết (tổng: ${allPosts.length})`);
       setPosts(filteredPosts.slice(0, 50));
     });
 
     return () => {
+      console.log('[DATA] Cleanup data listeners');
       unsubDocs();
       unsubPosts();
       unsubUsers(); // Cleanup listener
@@ -215,47 +262,56 @@ useEffect(() => {
   }, [user]);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-    setView('login');
+    console.log(`[LOGOUT] Bắt đầu đăng xuất cho user: ${user?.username} (${user?.id})`);
+    try {
+      await signOut(auth);
+      setUser(null);
+      setView('login');
+      console.log('[LOGOUT] Đăng xuất thành công');
+    } catch (error) {
+      console.error('[LOGOUT] Lỗi đăng xuất:', error);
+    }
   };
 
 const handleUpdateAvatar = async (userId: string, newAvatarUrl: string) => {
+  console.log(`[UPDATE_AVATAR] Cập nhật avatar cho user ${userId} bởi: ${user?.username}`);
   try {
     const userRef = fDoc(db, "users", userId);
     await updateDoc(userRef, {
       avatar: newAvatarUrl
     });
-    // Nếu là chính mình đang đổi thì cập nhật state để hiển thị ngay
     if (user && user.id === userId) {
       setUser({ ...user, avatar: newAvatarUrl });
     }
+    console.log(`[UPDATE_AVATAR] Cập nhật avatar thành công cho user ${userId}`);
     alert("Cập nhật ảnh đại diện thành công!");
   } catch (error) {
-    console.error("Lỗi cập nhật avatar:", error);
+    console.error(`[UPDATE_AVATAR] Lỗi cập nhật avatar cho user ${userId}:`, error);
     alert("Không thể cập nhật ảnh.");
   }
 };
 
 // Cập nhật thẻ người dùng
 const handleUpdateTag = async (userId: string, newTag: string) => {
+  console.log(`[UPDATE_TAG] Cập nhật thẻ '${newTag}' cho user ${userId} bởi admin: ${user?.username}`);
   try {
     const userRef = fDoc(db, "users", userId);
     const updateData: any = { tag: newTag };
     
-    // Nếu chọn thẻ banned mà user không bị block thì không cho phép
+
     if (newTag === 'banned') {
       const targetUser = users.find(u => u.id === userId);
       if (!targetUser?.isBlocked) {
+        console.warn(`[UPDATE_TAG] Không thể đặt thẻ 'banned' cho user ${userId} vì chưa bị chặn`);
         alert("Thẻ cấm chỉ dành cho tài khoản bị chặn!");
         return;
       }
     }
     
-    // Nếu bỏ chọn banned (đặt none) nhưng user đang bị block thì không cho phép
     if (newTag === 'none') {
       const targetUser = users.find(u => u.id === userId);
       if (targetUser?.isBlocked) {
+        console.warn(`[UPDATE_TAG] Không thể bỏ thẻ 'banned' cho user ${userId} vì đang bị chặn`);
         alert("Tài khoản đang bị chặn, không thể bỏ thẻ cấm!");
         return;
       }
@@ -266,8 +322,9 @@ const handleUpdateTag = async (userId: string, newTag: string) => {
     if (user && user.id === userId) {
       setUser({ ...user, tag: newTag });
     }
+    console.log(`[UPDATE_TAG] Cập nhật thẻ '${newTag}' thành công cho user ${userId}`);
   } catch (error) {
-    console.error("Lỗi cập nhật thẻ:", error);
+    console.error(`[UPDATE_TAG] Lỗi cập nhật thẻ cho user ${userId}:`, error);
     alert("Không thể cập nhật thẻ.");
   }
 };
@@ -275,14 +332,20 @@ const handleUpdateTag = async (userId: string, newTag: string) => {
 // Xử lý đổi avatar
 const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
-  if (!file) return;
+  if (!file) {
+    console.log('[AVATAR_CHANGE] Không có file được chọn');
+    return;
+  }
+  console.log(`[AVATAR_CHANGE] Đổi avatar: ${file.name} (${file.size} bytes) cho user: ${user?.username}`);
   if (file.size > 5 * 1024 * 1024) {
+    console.warn(`[AVATAR_CHANGE] File quá lớn: ${file.size} bytes > 5MB`);
     alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
     return;
   }
   const reader = new FileReader();
   reader.onloadend = async () => {
     const base64String = reader.result as string;
+    console.log('[AVATAR_CHANGE] Đã đọc file thành base64, cập nhật avatar...');
     if (user) {
       await handleUpdateAvatar(user.id, base64String);
     }
@@ -290,10 +353,15 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   reader.readAsDataURL(file);
   // Reset input để có thể chọn lại cùng file
   e.target.value = '';
+  console.log('[AVATAR_CHANGE] Reset input file');
 };
 
   const handleBookmark = async (docId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('[BOOKMARK] Lỗi: Không có user đăng nhập');
+      return;
+    }
+    console.log(`[BOOKMARK] ${user.bookmarks?.includes(docId) ? 'Bỏ lưu' : 'Lưu'} tài liệu ${docId} bởi user: ${user.username}`);
     try {
       const userRef = fDoc(db, "users", user.id);
       const currentBookmarks = user.bookmarks || [];
@@ -305,14 +373,16 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       await updateDoc(userRef, {
         bookmarks: isBookmarked ? arrayRemove(docId) : arrayUnion(docId)
       });
+      console.log(`[BOOKMARK] ${isBookmarked ? 'Đã bỏ lưu' : 'Đã lưu'} thành công`);
     } catch (err) {
-      console.error("Lỗi bookmark:", err);
+      console.error("[BOOKMARK] Lỗi bookmark:", err);
     }
   };
 
   const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
+      console.error('[POST] Lỗi: Không có user đăng nhập');
       alert("Vui lòng đăng nhập để đăng bài!");
       return;
     }
@@ -321,14 +391,15 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const isAnonymous = formData.get('isAnonymous') === 'true';
     
     if (!content?.trim() && !imagePreview) {
+      console.warn('[POST] Cảnh báo: Nội dung bài viết trống');
       alert("Nội dung bài viết không được để trống!");
       return;
     }
     
+    console.log(`[POST] Bắt đầu đăng bài bởi user: ${user.username} (${user.id}), ẩn danh: ${isAnonymous}`);
     setLoading(true);
     try {
-      // Admin posts are auto-approved, user posts need approval
-      // Admin posts are auto-approved, user posts need approval
+
       const postStatus = user.role === 'admin' ? 'approved' : 'pending';
       
       const postData = {
@@ -344,10 +415,10 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         status: postStatus
       };
       
-      console.log("Đang đăng bài:", postData);
+      console.log("[POST] Đang đăng bài:", postData);
       
       const docRef = await addDoc(collection(db, "posts"), postData);
-      console.log("Bài đăng thành công, ID:", docRef.id);
+      console.log(`[POST] Bài đăng thành công, ID: ${docRef.id}, trạng thái: ${postStatus}`);
       
       setImagePreview(null);
       // Reset form nếu tồn tại
@@ -358,51 +429,74 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       // Hiển thị thông báo thành công
       if (postStatus === 'approved') {
         alert(isAnonymous ? "Đã đăng bài ẩn danh thành công!" : "Đã đăng bài thành công!");
+        console.log('[POST] Bài đăng được duyệt tự động (admin)');
       } else {
         alert("Bài đăng của bạn đã được gửi và đang chờ duyệt!");
+        console.log('[POST] Bài đăng đang chờ duyệt');
       }
     } catch (error: any) {
-      console.error("Lỗi đăng bài:", error);
+      console.error("[POST] Lỗi đăng bài:", error);
       
-      // Hiển thị thông báo lỗi cụ thể hơn
+      // Hiển thị thông báo lỗi 
       if (error.code === 'permission-denied') {
         alert("Lỗi quyền truy cập. Vui lòng đăng nhập lại!");
+        console.error('[POST] Lỗi quyền truy cập Firebase');
       } else if (error.code === 'unavailable') {
         alert("Máy chủ tạm thời không khả dụng. Vui lòng thử lại sau!");
+        console.error('[POST] Máy chủ Firebase không khả dụng');
       } else {
         alert("Đã đăng bài! (Có thể có chút trễ)");
+        console.log('[POST] Bài đăng có thể thành công nhưng có lỗi hiển thị');
       }
     } finally {
       setLoading(false);
+      console.log('[POST] Kết thúc quá trình đăng bài');
     }
   };
 
   const handleLikePost = async (postId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('[LIKE] Lỗi: Không có user đăng nhập');
+      return;
+    }
+    console.log(`[LIKE] ${posts.find(p => p.id === postId)?.likedBy?.includes(user.id) ? 'Bỏ thích' : 'Thích'} bài viết ${postId} bởi user: ${user.username}`);
     try {
       const postRef = fDoc(db, "posts", postId);
       const post = posts.find(p => p.id === postId);
-      if (!post) return;
+      if (!post) {
+        console.warn(`[LIKE] Không tìm thấy bài viết ${postId}`);
+        return;
+      }
       const isLiked = post.likedBy?.includes(user.id);
       await updateDoc(postRef, {
         likedBy: isLiked ? arrayRemove(user.id) : arrayUnion(user.id)
       });
+      console.log(`[LIKE] ${isLiked ? 'Đã bỏ thích' : 'Đã thích'} thành công`);
     } catch (err) {
-      console.error("Lỗi like:", err);
+      console.error("[LIKE] Lỗi like:", err);
     }
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+    console.log(`[DELETE_POST] Xóa bài viết ${postId} bởi user: ${user?.username}`);
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+      console.log(`[DELETE_POST] User đã hủy xóa bài viết ${postId}`);
+      return;
+    }
     try {
       await deleteDoc(fDoc(db, "posts", postId));
+      console.log(`[DELETE_POST] Bài viết ${postId} đã được xóa thành công`);
     } catch (err) {
-      console.error("Lỗi xóa bài:", err);
+      console.error(`[DELETE_POST] Lỗi xóa bài viết ${postId}:`, err);
     }
   };
 
   const handleReportPost = async (postId: string, reason: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('[REPORT] Lỗi: Không có user đăng nhập');
+      return;
+    }
+    console.log(`[REPORT] Báo cáo bài viết ${postId} bởi user: ${user.username}, lý do: ${reason}`);
     try {
       await addDoc(collection(db, "reports"), {
         targetId: postId,
@@ -412,15 +506,20 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         status: 'pending',
         createdAt: new Date().toISOString()
       });
+      console.log('[REPORT] Báo cáo bài viết thành công');
       alert("Đã báo cáo thành công!");
     } catch (err) {
-      console.error("Lỗi báo cáo:", err);
+      console.error("[REPORT] Lỗi báo cáo:", err);
     }
   };
 
-  // Báo cáo tài liệu (dùng trong ImagePreviewModal)
+  // Báo cáo tài liệu
   const handleReportDocument = async (docId: string, reason: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('[REPORT_DOC] Lỗi: Không có user đăng nhập');
+      return;
+    }
+    console.log(`[REPORT_DOC] Báo cáo tài liệu ${docId} bởi user: ${user.username}, lý do: ${reason}`);
     try {
       await addDoc(collection(db, "reports"), {
         targetId: docId,
@@ -430,13 +529,18 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         status: 'pending',
         createdAt: new Date().toISOString()
       });
+      console.log('[REPORT_DOC] Báo cáo tài liệu thành công');
     } catch (err) {
-      console.error("Lỗi báo cáo tài liệu:", err);
+      console.error(`[REPORT_DOC] Lỗi báo cáo tài liệu ${docId}:`, err);
     }
   };
 
   const handleReplySubmit = async (postId: string, content: string) => {
-    if (!user || !content.trim()) return;
+    if (!user || !content.trim()) {
+      console.warn(`[REPLY] Thiếu thông tin: user=${!!user}, content=${!!content.trim()}`);
+      return;
+    }
+    console.log(`[REPLY] Trả lời bài viết ${postId} bởi user: ${user.username}`);
     try {
       const postRef = fDoc(db, "posts", postId);
       const newReply = {
@@ -447,61 +551,76 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         createdAt: new Date().toISOString()
       };
       await updateDoc(postRef, { replies: arrayUnion(newReply) });
+      console.log(`[REPLY] Trả lời thành công cho bài viết ${postId}`);
       setReplyingTo(null);
     } catch (err) {
-      console.error("Lỗi trả lời:", err);
+      console.error(`[REPLY] Lỗi trả lời bài viết ${postId}:`, err);
     }
   };
 
   const handleDeleteDocument = async (id: string) => {
+    console.log(`[DELETE_DOC] Xóa tài liệu ${id} bởi user: ${user?.username}`);
     try {
       await deleteDoc(fDoc(db, "documents", id));
+      console.log(`[DELETE_DOC] Tài liệu ${id} đã được xóa thành công`);
       alert("Đã xóa tài liệu thành công!");
     } catch (err) {
+      console.error(`[DELETE_DOC] Lỗi xóa tài liệu ${id}:`, err);
       alert("Lỗi khi xóa tài liệu.");
     }
   };
-const handleDownload = (doc: any) => { // Ép kiểu any ở đây là xong
-  // Kiểm tra xem trường dữ liệu file nén của ní tên là gì (archiveData hay fileContent)
+const handleDownload = (doc: any) => {
+  console.log(`[DOWNLOAD] Tải xuống tài liệu: ${doc.title || doc.id} bởi user: ${user?.username}`);
   const data = doc.archiveData || doc.fileContent;
   const name = doc.archiveName || doc.title || 'tai-lieu';
 
   if (!data || !data.startsWith('data:application')) {
+    console.warn(`[DOWNLOAD] Tài liệu ${doc.id} không có file đính kèm hợp lệ`);
     alert("Tài liệu này không có tệp nén đính kèm hoặc định dạng không hỗ trợ!");
     return;
   }
 
   try {
     const link = document.createElement('a');
-    link.href = data; 
+    link.href = data;
     link.download = name.includes('.') ? name : `${name}.zip`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    console.log(`[DOWNLOAD] Tải xuống thành công: ${name}`);
   } catch (error) {
+    console.error(`[DOWNLOAD] Lỗi tải xuống tài liệu ${doc.id}:`, error);
     alert("Lỗi khi tải xuống!");
   }
 };
 const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
-  if (!user) return;
+  if (!user) {
+    console.error('[UPLOAD] Lỗi: Không có user đăng nhập');
+    return;
+  }
 
   if (!imagePreview && !archiveFile) {
+    console.warn('[UPLOAD] Cảnh báo: Không có file nào được chọn');
     alert("Chọn ảnh hoặc file nén để tải lên!");
     return;
   }
 
+  console.log(`[UPLOAD] Bắt đầu upload tài liệu bởi user: ${user.username} (${user.id})`);
   setLoading(true);
   try {
     const fd = new FormData(e.currentTarget);
     let archiveBase64 = null;
     if (archiveFile) {
+      console.log(`[UPLOAD] Xử lý file nén: ${archiveFile.name} (${archiveFile.size} bytes)`);
       archiveBase64 = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(archiveFile);
       });
+      console.log('[UPLOAD] File nén đã được encode thành base64');
     }
+
     const newDoc = {
       title: fd.get('title')?.toString() || 'Tài liệu không tên',
       subject: fd.get('subject')?.toString() || 'Khác',
@@ -514,85 +633,117 @@ const handleDocUpload = async (e: React.FormEvent<HTMLFormElement>) => {
       status: user.role === 'admin' ? 'approved' : 'pending',
       createdAt: new Date().toISOString(),
       viewCount: 0,
- fileContent: imagePreview ? imagePreview : null,
+      fileContent: imagePreview ? imagePreview : null,
       archiveName: archiveFile ? archiveFile.name : null, // Lưu tên file nén
+      archiveData: archiveBase64
     };
 
+    console.log('[UPLOAD] Đang lưu tài liệu vào Firestore...', newDoc);
     await addDoc(collection(db, "documents"), newDoc);
+    console.log('[UPLOAD] Tài liệu đã được lưu thành công');
 
-    // 🔥 GIỜ THÌ RESET ĐƯỢC RỒI VÌ ĐÃ CÙNG FILE App.tsx
     setImagePreview(null);
     setArchiveFile(null); 
 
     alert("Vì Quốc Bảo quá đẹp trai nên đăng thành công!");
     setView('home');
+    console.log('[UPLOAD] Upload hoàn thành và chuyển về trang chủ');
   } catch (error) {
+    console.error('[UPLOAD] Lỗi upload:', error);
     alert("Lỗi rồi ní!");
   } finally {
     setLoading(false);
+    console.log('[UPLOAD] Kết thúc quá trình upload');
   }
 };
 
   const handleApproveDocument = async (docId: string) => {
+    console.log(`[APPROVE_DOC] Duyệt tài liệu ${docId} bởi admin: ${user?.username}`);
     try {
       const docRef = fDoc(db, "documents", docId);
       await updateDoc(docRef, {
         status: 'approved',
         approvedAt: new Date().toISOString(),
       });
+      console.log(`[APPROVE_DOC] Tài liệu ${docId} đã được duyệt thành công`);
       alert("✅ Đã duyệt tài liệu thành công!");
     } catch (error) {
+      console.error(`[APPROVE_DOC] Lỗi duyệt tài liệu ${docId}:`, error);
       alert("❌ Lỗi: Không thể cập nhật trạng thái tài liệu.");
     }
   };
 
   const handleRejectDocument = async (docId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) return;
+    console.log(`[REJECT_DOC] Từ chối tài liệu ${docId} bởi admin: ${user?.username}`);
+    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa tài liệu này?")) {
+      console.log(`[REJECT_DOC] Admin đã hủy thao tác từ chối tài liệu ${docId}`);
+      return;
+    }
     try {
       await deleteDoc(fDoc(db, "documents", docId));
+      console.log(`[REJECT_DOC] Tài liệu ${docId} đã bị xóa thành công`);
       alert("🗑️ Đã từ chối và gỡ bỏ tài liệu.");
     } catch (error) {
+      console.error(`[REJECT_DOC] Lỗi xóa tài liệu ${docId}:`, error);
       alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
     }
   };
 
   // Post approval handlers
   const handleApprovePost = async (postId: string) => {
+    console.log(`[APPROVE_POST] Duyệt bài đăng ${postId} bởi admin: ${user?.username}`);
     try {
       const postRef = fDoc(db, "posts", postId);
       await updateDoc(postRef, {
         status: 'approved',
       });
+      console.log(`[APPROVE_POST] Bài đăng ${postId} đã được duyệt thành công`);
       alert("✅ Đã duyệt bài đăng thành công!");
     } catch (error) {
+      console.error(`[APPROVE_POST] Lỗi duyệt bài đăng ${postId}:`, error);
       alert("❌ Lỗi: Không thể cập nhật trạng thái bài đăng.");
     }
   };
 
   const handleRejectPost = async (postId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa bài đăng này?")) return;
+    console.log(`[REJECT_POST] Từ chối bài đăng ${postId} bởi admin: ${user?.username}`);
+    if (!window.confirm("Bạn có chắc chắn muốn từ chối và xóa bài đăng này?")) {
+      console.log(`[REJECT_POST] Admin đã hủy thao tác từ chối bài đăng ${postId}`);
+      return;
+    }
     try {
       await deleteDoc(fDoc(db, "posts", postId));
+      console.log(`[REJECT_POST] Bài đăng ${postId} đã bị xóa thành công`);
       alert("🗑️ Đã từ chối và gỡ bỏ bài đăng.");
     } catch (error) {
+      console.error(`[REJECT_POST] Lỗi xóa bài đăng ${postId}:`, error);
       alert("❌ Lỗi: Không thể thực hiện thao tác xóa.");
     }
   };
 // Hàm chặn đăng nhập
 const handleToggleBlockUser = async (userId: string, currentStatus: boolean) => {
-  if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) return;
+  console.log(`[BLOCK_USER] ${currentStatus ? 'Bỏ chặn' : 'Chặn'} user ${userId} bởi admin: ${user?.username}`);
+  if (!window.confirm(`Bạn có chắc muốn ${currentStatus ? 'bỏ chặn' : 'chặn'} người dùng này?`)) {
+    console.log(`[BLOCK_USER] Admin đã hủy thao tác ${currentStatus ? 'bỏ chặn' : 'chặn'} user ${userId}`);
+    return;
+  }
   try {
     await updateDoc(fDoc(db, "users", userId), { isBlocked: !currentStatus });
+    console.log(`[BLOCK_USER] ${currentStatus ? 'Đã bỏ chặn' : 'Đã chặn'} user ${userId} thành công`);
   } catch (error) {
+    console.error(`[BLOCK_USER] Lỗi ${currentStatus ? 'bỏ chặn' : 'chặn'} user ${userId}:`, error);
     alert("Lỗi cập nhật trạng thái chặn");
   }
 };
 
 // Hàm cấm chat/đăng bài
 const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
+  console.log(`[MUTE_USER] ${currentStatus ? 'Bỏ cấm' : 'Cấm'} chat/đăng bài user ${userId} bởi admin: ${user?.username}`);
   try {
     await updateDoc(fDoc(db, "users", userId), { isMuted: !currentStatus });
+    console.log(`[MUTE_USER] ${currentStatus ? 'Đã bỏ cấm' : 'Đã cấm'} user ${userId} thành công`);
   } catch (error) {
+    console.error(`[MUTE_USER] Lỗi ${currentStatus ? 'bỏ cấm' : 'cấm'} user ${userId}:`, error);
     alert("Lỗi cập nhật trạng thái cấm");
   }
 };
@@ -929,7 +1080,6 @@ const handleToggleMuteUser = async (userId: string, currentStatus: boolean) => {
       )}
 
     {/* ===== IMAGE PREVIEW MODAL TOÀN CỤC ===== */}
-      {/* Chỉ render Modal khi modalOpen là true VÀ có imageUrl để tránh bảng trắng */}
       {modalOpen && modalImageUrl && (
         <ImagePreviewModal
           isOpen={modalOpen}
