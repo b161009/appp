@@ -164,9 +164,9 @@ export default function App() {
       return;
     }
     console.log(`[IMAGE_UPLOAD] Upload ảnh: ${file.name} (${file.size} bytes)`);
-    if (file.size > 5 * 1024 * 1024) {
-      console.warn(`[IMAGE_UPLOAD] File quá lớn: ${file.size} bytes > 5MB`);
-      alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+    if (file.size > 500 * 1024) { // Giảm từ 5MB xuống 500KB để tránh vượt limit Firestore 1MB
+      console.warn(`[IMAGE_UPLOAD] File quá lớn: ${file.size} bytes > 500KB`);
+      alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 500KB.');
       return;
     }
     const reader = new FileReader();
@@ -337,9 +337,9 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     return;
   }
   console.log(`[AVATAR_CHANGE] Đổi avatar: ${file.name} (${file.size} bytes) cho user: ${user?.username}`);
-  if (file.size > 5 * 1024 * 1024) {
-    console.warn(`[AVATAR_CHANGE] File quá lớn: ${file.size} bytes > 5MB`);
-    alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+  if (file.size > 500 * 1024) { // Giảm từ 5MB xuống 500KB để tránh vượt limit Firestore 1MB
+    console.warn(`[AVATAR_CHANGE] File quá lớn: ${file.size} bytes > 500KB`);
+    alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 500KB.');
     return;
   }
   const reader = new FileReader();

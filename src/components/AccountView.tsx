@@ -154,6 +154,11 @@ const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 500 * 1024) { // Giảm từ 5MB xuống 500KB để tránh vượt limit Firestore 1MB
+      alert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 500KB.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64String = reader.result as string;
